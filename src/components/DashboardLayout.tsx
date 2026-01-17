@@ -2,9 +2,9 @@ import { ReactNode } from "react";
 import AppSidebar from "./AppSidebar";
 import DashboardHeader from "./DashboardHeader";
 
-interface DashboardLayoutProps {
+export interface DashboardLayoutProps {
   children: ReactNode;
-  title: string;
+  title?: string;
   subtitle?: string;
 }
 

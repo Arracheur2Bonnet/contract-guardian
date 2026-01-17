@@ -12,6 +12,7 @@ import Results from "./pages/Results";
 import Analyses from "./pages/Analyses";
 import History from "./pages/History";
 import Settings from "./pages/Settings";
+import Pricing from "./pages/Pricing";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -65,6 +66,7 @@ const App = () => (
           <Route path="/analyses" element={<ProtectedRoute><Analyses /></ProtectedRoute>} />
           <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          <Route path="/pricing" element={<ProtectedRoute><Pricing /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

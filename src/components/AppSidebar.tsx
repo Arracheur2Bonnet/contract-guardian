@@ -5,7 +5,8 @@ import {
   Search, 
   Clock, 
   Settings, 
-  LogOut
+  LogOut,
+  CreditCard
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import logoImage from "@/assets/logo.png";
@@ -17,6 +18,7 @@ const navItems = [
   { icon: Home, label: "Dashboard", path: "/" },
   { icon: Search, label: "Analyses", path: "/analyses" },
   { icon: Clock, label: "Historique", path: "/history" },
+  { icon: CreditCard, label: "Abonnement", path: "/pricing" },
   { icon: Settings, label: "Paramètres", path: "/settings" },
 ];
 
