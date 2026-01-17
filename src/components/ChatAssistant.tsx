@@ -108,8 +108,8 @@ const ChatAssistant = ({ contractText }: ChatAssistantProps) => {
   }
 
   return (
-    <Card className="fixed bottom-6 right-6 w-[420px] shadow-2xl z-50 flex flex-col overflow-hidden rounded-3xl border-border/50"
-      style={{ height: isMinimized ? "auto" : "620px" }}
+    <Card className="fixed bottom-6 right-6 w-[520px] shadow-2xl z-50 flex flex-col overflow-hidden rounded-3xl border-border/50"
+      style={{ height: isMinimized ? "auto" : "75vh", maxHeight: "800px" }}
     >
       {/* Header */}
       <div className="flex items-center justify-between p-4 gradient-primary text-white">
