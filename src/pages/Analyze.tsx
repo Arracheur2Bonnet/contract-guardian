@@ -8,6 +8,9 @@ import { Loader2, AlertTriangle, Briefcase, Home, FileText, Lock, ShoppingCart }
 import { useToast } from "@/hooks/use-toast";
 import { analyzeContract } from "@/services/featherlessApi";
 import { createContractAnalysis, updateContractAnalysis, getVerdict, detectContractType, extractContractName } from "@/services/contractService";
+import { getOrCreateUserCredits, canUseCredit, incrementCreditsUsed, getRemainingCredits, UserCredits } from "@/services/creditsService";
+import { supabase } from "@/integrations/supabase/client";
+import UpgradeModal from "@/components/UpgradeModal";
 import * as pdfjsLib from "pdfjs-dist";
 
 // Configure PDF.js worker
@@ -47,8 +50,22 @@ const Analyze = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState("");
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [userCredits, setUserCredits] = useState<UserCredits | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Fetch user credits on mount
+  useEffect(() => {
+    const fetchCredits = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const credits = await getOrCreateUserCredits(user.id);
+        setUserCredits(credits);
+      }
+    };
+    fetchCredits();
+  }, []);
 
   // Handle file from navigation state (from dashboard drag & drop)
   useEffect(() => {
@@ -97,6 +114,26 @@ const Analyze = () => {
   const handleAnalyze = async () => {
     if (!file) return;
 
+    // Check credits before analyzing
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast({
+        title: "Erreur",
+        description: "Vous devez être connecté pour analyser un contrat",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const hasCredit = await canUseCredit(user.id);
+    if (!hasCredit) {
+      // Refresh credits state and show upgrade modal
+      const credits = await getOrCreateUserCredits(user.id);
+      setUserCredits(credits);
+      setShowUpgradeModal(true);
+      return;
+    }
+
     setIsAnalyzing(true);
     setError(null);
 
@@ -141,6 +178,13 @@ const Analyze = () => {
         status: 'analyzed'
       });
 
+      // Increment credits used after successful analysis
+      await incrementCreditsUsed(user.id);
+      
+      // Refresh credits state
+      const updatedCredits = await getOrCreateUserCredits(user.id);
+      setUserCredits(updatedCredits);
+
       // Navigate to results with the contract ID
       navigate(`/results/${contractEntry.id}`);
     } catch (err: any) {
@@ -160,6 +204,26 @@ const Analyze = () => {
   return (
     <DashboardLayout title="Analyser un contrat" subtitle="Uploadez votre contrat PDF pour obtenir une analyse détaillée">
       <div className="max-w-2xl mx-auto">
+        {/* Credits indicator */}
+        {userCredits && (
+          <div className="mb-6 p-4 bg-muted/50 rounded-lg flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-primary" />
+              <span className="text-sm">
+                Crédits restants : {' '}
+                <span className="font-medium">
+                  {getRemainingCredits(userCredits) === 'unlimited' 
+                    ? 'Illimités' 
+                    : getRemainingCredits(userCredits)}
+                </span>
+              </span>
+            </div>
+            <span className="text-xs text-muted-foreground capitalize">
+              Plan {userCredits.plan}
+            </span>
+          </div>
+        )}
+
         <div className="bg-card border border-border rounded-xl p-6 md:p-8 shadow-sm">
           <FileUpload
             onFileSelect={handleFileSelect}
@@ -221,6 +285,12 @@ const Analyze = () => {
           </p>
         </div>
       </div>
+
+      <UpgradeModal 
+        open={showUpgradeModal} 
+        onOpenChange={setShowUpgradeModal}
+        currentCredits={userCredits}
+      />
     </DashboardLayout>
   );
 };
