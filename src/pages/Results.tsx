@@ -264,64 +264,86 @@ const Results = () => {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
-          <div>
-            <Link
-              to="/history"
-              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mb-2"
-            >
-              <ArrowLeft size={12} />
-              Retour à l'historique
-            </Link>
-          </div>
+          <Link
+            to="/history"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft size={16} />
+            Retour à l'historique
+          </Link>
           <Button variant="outline" size="sm" className="gap-2" onClick={handleDownloadReport}>
             <Download size={14} />
             Télécharger le rapport
           </Button>
         </div>
 
-        {/* Risk Score Card */}
-        <div className="bg-card border border-border rounded-lg p-6 mb-8 shadow-sm">
-          <RiskScore score={contract.risk_score} size="lg" />
-          
-          {contract.resume && (
-            <div className="mt-6 pt-6 border-t border-border">
-              <div className="flex items-start gap-3 max-w-2xl mx-auto">
-                <BookOpen className="text-primary flex-shrink-0 mt-0.5" size={18} />
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Résumé</p>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {contract.resume}
-                  </p>
+        {/* Hero Card - Risk Score & Summary */}
+        <div className="bg-gradient-to-br from-card to-muted/20 border border-border rounded-2xl overflow-hidden shadow-sm mb-8">
+          <div className="p-8">
+            <div className="flex flex-col lg:flex-row items-center gap-8">
+              {/* Risk Score */}
+              <div className="flex-shrink-0">
+                <RiskScore score={contract.risk_score} size="lg" />
+              </div>
+              
+              {/* Summary & Stats */}
+              <div className="flex-1 text-center lg:text-left">
+                <div className="flex flex-wrap justify-center lg:justify-start gap-3 mb-6">
+                  {elevatedCount > 0 && (
+                    <div className="flex items-center gap-2 bg-destructive/10 text-destructive px-4 py-2 rounded-full">
+                      <AlertTriangle size={14} />
+                      <span className="text-sm font-medium">
+                        {elevatedCount} problème{elevatedCount > 1 ? "s" : ""} majeur{elevatedCount > 1 ? "s" : ""}
+                      </span>
+                    </div>
+                  )}
+                  {moderateCount > 0 && (
+                    <div className="flex items-center gap-2 bg-warning/10 text-warning px-4 py-2 rounded-full">
+                      <AlertTriangle size={14} />
+                      <span className="text-sm font-medium">
+                        {moderateCount} point{moderateCount > 1 ? "s" : ""} d'attention
+                      </span>
+                    </div>
+                  )}
+                  {standardClauses.length > 0 && (
+                    <div className="flex items-center gap-2 bg-success/10 text-success px-4 py-2 rounded-full">
+                      <CheckCircle size={14} />
+                      <span className="text-sm font-medium">
+                        {standardClauses.length} clause{standardClauses.length > 1 ? "s" : ""} conforme{standardClauses.length > 1 ? "s" : ""}
+                      </span>
+                    </div>
+                  )}
                 </div>
+
+                {contract.resume && (
+                  <div className="bg-background/50 rounded-xl p-5 border border-border/50">
+                    <div className="flex items-start gap-3">
+                      <BookOpen className="text-primary flex-shrink-0 mt-0.5" size={18} />
+                      <div>
+                        <p className="text-xs font-semibold text-primary uppercase tracking-wide mb-2">Résumé de l'analyse</p>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                          {contract.resume}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-          )}
-
-          <div className="mt-6 flex flex-wrap justify-center gap-3 text-xs">
-            {elevatedCount > 0 && (
-              <span className="bg-destructive/10 text-destructive px-3 py-1 rounded-full">
-                {elevatedCount} problème{elevatedCount > 1 ? "s" : ""} majeur{elevatedCount > 1 ? "s" : ""}
-              </span>
-            )}
-            {moderateCount > 0 && (
-              <span className="bg-warning/10 text-warning px-3 py-1 rounded-full">
-                {moderateCount} point{moderateCount > 1 ? "s" : ""} d'attention
-              </span>
-            )}
-            {standardClauses.length > 0 && (
-              <span className="bg-success/10 text-success px-3 py-1 rounded-full">
-                {standardClauses.length} clause{standardClauses.length > 1 ? "s" : ""} standard
-              </span>
-            )}
           </div>
         </div>
 
         {/* Red Flags */}
         {redFlags.length > 0 && (
-          <section className="mb-8">
-            <div className="flex items-center gap-2 mb-4">
-              <AlertTriangle className="text-destructive" size={18} />
-              <h2 className="text-lg font-semibold">Points d'attention détectés</h2>
+          <section className="mb-10">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2.5 rounded-xl bg-destructive/10">
+                <AlertTriangle className="text-destructive" size={20} />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold">Points d'attention</h2>
+                <p className="text-sm text-muted-foreground">{redFlags.length} élément{redFlags.length > 1 ? "s" : ""} détecté{redFlags.length > 1 ? "s" : ""}</p>
+              </div>
             </div>
             <div className="space-y-4">
               {redFlags.map((flag: any, index: number) => (
@@ -333,10 +355,15 @@ const Results = () => {
 
         {/* Standard Clauses */}
         {standardClauses.length > 0 && (
-          <section className="mb-8">
-            <div className="flex items-center gap-2 mb-4">
-              <FileText className="text-success" size={18} />
-              <h2 className="text-lg font-semibold">Clauses standard détectées</h2>
+          <section className="mb-10">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2.5 rounded-xl bg-success/10">
+                <CheckCircle className="text-success" size={20} />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold">Clauses conformes</h2>
+                <p className="text-sm text-muted-foreground">{standardClauses.length} clause{standardClauses.length > 1 ? "s" : ""} standard{standardClauses.length > 1 ? "s" : ""}</p>
+              </div>
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
               {standardClauses.map((clause: any, index: number) => (
@@ -347,15 +374,15 @@ const Results = () => {
         )}
 
         {/* Contact Lawyer Section */}
-        <Card className="mb-8 overflow-hidden">
-          <div className="bg-primary/5 border-b border-border p-5">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="bg-primary/10 p-2 rounded-full">
-                <Scale className="h-5 w-5 text-primary" />
+        <Card className="mb-10 overflow-hidden rounded-2xl border-border/50">
+          <div className="bg-gradient-to-r from-primary/10 to-primary/5 border-b border-border p-6">
+            <div className="flex items-center gap-4">
+              <div className="bg-primary/20 p-3 rounded-xl">
+                <Scale className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <h2 className="text-base font-semibold">Besoin d'un avis juridique ?</h2>
-                <p className="text-xs text-muted-foreground">
+                <h2 className="text-lg font-bold">Besoin d'un avis juridique ?</h2>
+                <p className="text-sm text-muted-foreground">
                   Nos avocats partenaires analysent votre contrat en profondeur
                 </p>
               </div>
@@ -512,12 +539,17 @@ const Results = () => {
         />
 
         {/* Disclaimer */}
-        <div className="mt-8 flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 p-4 rounded-lg">
-          <AlertTriangle size={14} className="mt-0.5 flex-shrink-0" />
-          <p>
-            Cet outil est fourni à titre informatif uniquement et ne remplace pas les conseils d'un avocat qualifié.
-            Les informations présentées peuvent ne pas refléter l'intégralité des risques juridiques.
-          </p>
+        <div className="mt-10 flex items-start gap-3 text-sm text-muted-foreground bg-muted/30 border border-border/50 p-5 rounded-2xl">
+          <div className="p-2 bg-muted rounded-lg">
+            <AlertTriangle size={16} className="flex-shrink-0" />
+          </div>
+          <div>
+            <p className="font-medium text-foreground mb-1">Avertissement</p>
+            <p>
+              Cet outil est fourni à titre informatif uniquement et ne remplace pas les conseils d'un avocat qualifié.
+              Les informations présentées peuvent ne pas refléter l'intégralité des risques juridiques.
+            </p>
+          </div>
         </div>
       </div>
     </DashboardLayout>
