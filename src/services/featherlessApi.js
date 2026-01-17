@@ -3,10 +3,10 @@ const API_KEY = 'rc_dead7c4f14100aa214d67505ea13768a860ade546fc163628ef17cdeb97b
 
 // Liste de modèles à essayer dans l'ordre (du meilleur au fallback)
 const MODELS_TO_TRY = [
+  'Qwen/Qwen2.5-72B-Instruct',
+  'Qwen/Qwen2.5-7B-Instruct',
   'meta-llama/Llama-3.1-70B-Instruct',
-  'Qwen/QwQ-32B-Preview',
-  'meta-llama/Llama-3.3-70B-Instruct',
-  'deepseek-ai/DeepSeek-V3',
+  'deepseek-ai/DeepSeek-V2.5',
 ];
 
 /**
