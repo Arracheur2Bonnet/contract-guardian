@@ -5,14 +5,11 @@ import FileUpload from "@/components/FileUpload";
 import { Button } from "@/components/ui/button";
 import { Loader2, AlertTriangle, Briefcase, Home, FileText, Lock, ShoppingCart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { analyzeContract } from "@/services/featherlessApi";
 import * as pdfjsLib from "pdfjs-dist";
 
-// Configure PDF.js worker using the legacy build for better compatibility
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.mjs',
-  import.meta.url
-).toString();
+// Configure PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
 const contractTypes = [
   { icon: Briefcase, name: "Freelance" },
@@ -67,22 +64,15 @@ const Analyze = () => {
         throw new Error("Ce PDF ne contient pas de texte analysable");
       }
 
-      // Call the edge function
-      const { data, error: functionError } = await supabase.functions.invoke("analyze-contract", {
-        body: { contractText },
-      });
+      // Call the API directly
+      const result = await analyzeContract(contractText);
 
-      if (functionError) {
-        console.error("Function error:", functionError);
-        throw new Error(functionError.message || "Erreur lors de l'analyse");
-      }
-
-      if (!data.success) {
-        throw new Error(data.error || "Erreur lors de l'analyse du contrat");
+      if (!result.success) {
+        throw new Error(result.error || "Erreur lors de l'analyse du contrat");
       }
 
       // Store results in sessionStorage
-      sessionStorage.setItem("analysisResult", JSON.stringify(data));
+      sessionStorage.setItem("analysisResult", JSON.stringify(result));
       navigate("/results");
     } catch (err: any) {
       console.error("Analysis error:", err);
