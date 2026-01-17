@@ -1,13 +1,8 @@
 const API_URL = 'https://api.featherless.ai/v1/chat/completions';
 const API_KEY = 'rc_dead7c4f14100aa214d67505ea13768a860ade546fc163628ef17cdeb97b9736'; 
 
-// Liste de modèles à essayer dans l'ordre (du meilleur au fallback)
-const MODELS_TO_TRY = [
-  'Qwen/Qwen2.5-72B-Instruct',
-  'Qwen/Qwen2.5-7B-Instruct',
-  'meta-llama/Llama-3.1-70B-Instruct',
-  'deepseek-ai/DeepSeek-V2.5',
-];
+// Modèle principal pour l'analyse de contrats
+const ANALYSIS_MODEL = 'Qwen/Qwen2.5-72B-Instruct';
 
 /**
  * Analyse un contrat et retourne score + red flags
@@ -85,109 +80,77 @@ Réponds UNIQUEMENT en JSON valide avec cette structure EXACTE :
   "resume": "Ce contrat présente plusieurs clauses très problématiques qui exposent le prestataire à des risques financiers et juridiques majeurs."
 }`;
 
-  console.log('🔍 Début analyse contrat...');
+  console.log('🔍 Début analyse contrat avec', ANALYSIS_MODEL);
   
-  // Essayer chaque modèle jusqu'à ce qu'un marche
-  for (let i = 0; i < MODELS_TO_TRY.length; i++) {
-    const model = MODELS_TO_TRY[i];
-    console.log(`Essai avec le modèle ${i + 1}/${MODELS_TO_TRY.length}: ${model}`);
-    
-    try {
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: model,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: `Analyse ce contrat en détail et détecte tous les red flags :\n\n${contractText}` }
-          ],
-          temperature: 0.1,
-          max_tokens: 8000,
-        }),
-      });
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: ANALYSIS_MODEL,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `Analyse ce contrat en détail et détecte tous les red flags :\n\n${contractText}` }
+        ],
+        temperature: 0.1,
+        max_tokens: 8000,
+      }),
+    });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.warn(`❌ Modèle ${model} erreur ${response.status}:`, errorText);
-        
-        // Si c'est un rate limit (429), on attend et on réessaye
-        if (response.status === 429 && i === 0) {
-          console.log('⏳ Rate limit, attente de 3 secondes...');
-          await new Promise(resolve => setTimeout(resolve, 3000));
-          i--; // Réessayer le même modèle
-          continue;
-        }
-        
-        // Si c'est pas le dernier modèle, essayer le suivant
-        if (i < MODELS_TO_TRY.length - 1) {
-          continue;
-        }
-        
-        throw new Error(`Tous les modèles ont échoué. Dernier: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log(`✅ Succès avec le modèle: ${model}`);
-      
-      const content = data.choices[0].message.content;
-      
-      // Parse JSON (enlever markdown si présent)
-      let jsonContent = content.trim();
-      if (jsonContent.startsWith('```json')) {
-        jsonContent = jsonContent.slice(7);
-      } else if (jsonContent.startsWith('```')) {
-        jsonContent = jsonContent.slice(3);
-      }
-      if (jsonContent.endsWith('```')) {
-        jsonContent = jsonContent.slice(0, -3);
-      }
-      
-      const analysis = JSON.parse(jsonContent.trim());
-      
-      // Calculer le score de risque
-      let score = 0;
-      analysis.redFlags.forEach(flag => {
-        if (flag.gravite === 'élevée') score += 25;
-        else if (flag.gravite === 'modérée') score += 15;
-        else score += 5;
-      });
-      
-      const finalScore = Math.min(score, 100);
-      
-      console.log(`📊 Analyse terminée: ${analysis.redFlags.length} red flags, score ${finalScore}`);
-      
-      return {
-        success: true,
-        riskScore: finalScore,
-        redFlags: analysis.redFlags,
-        standardClauses: analysis.standardClauses || [],
-        resume: analysis.resume
-      };
-      
-    } catch (error) {
-      console.error(`❌ Erreur avec modèle ${model}:`, error);
-      
-      // Si c'est pas le dernier modèle, essayer le suivant
-      if (i < MODELS_TO_TRY.length - 1) {
-        continue;
-      }
-      
-      // Si tous les modèles ont échoué
-      return {
-        success: false,
-        error: `Échec de tous les modèles: ${error.message}`
-      };
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ Erreur API ${response.status}:`, errorText);
+      throw new Error(`Erreur API: ${response.status}`);
     }
+
+    const data = await response.json();
+    console.log('✅ Réponse reçue de l\'API');
+    
+    const content = data.choices[0].message.content;
+    
+    // Parse JSON (enlever markdown si présent)
+    let jsonContent = content.trim();
+    if (jsonContent.startsWith('```json')) {
+      jsonContent = jsonContent.slice(7);
+    } else if (jsonContent.startsWith('```')) {
+      jsonContent = jsonContent.slice(3);
+    }
+    if (jsonContent.endsWith('```')) {
+      jsonContent = jsonContent.slice(0, -3);
+    }
+    
+    const analysis = JSON.parse(jsonContent.trim());
+    
+    // Calculer le score de risque
+    let score = 0;
+    analysis.redFlags.forEach(flag => {
+      if (flag.gravite === 'élevée') score += 25;
+      else if (flag.gravite === 'modérée') score += 15;
+      else score += 5;
+    });
+    
+    const finalScore = Math.min(score, 100);
+    
+    console.log(`📊 Analyse terminée: ${analysis.redFlags.length} red flags, score ${finalScore}`);
+    
+    return {
+      success: true,
+      riskScore: finalScore,
+      redFlags: analysis.redFlags,
+      standardClauses: analysis.standardClauses || [],
+      resume: analysis.resume
+    };
+    
+  } catch (error) {
+    console.error('❌ Erreur analyse:', error);
+    return {
+      success: false,
+      error: error.message
+    };
   }
-  
-  return {
-    success: false,
-    error: 'Aucun modèle disponible'
-  };
 }
 
 /**
@@ -210,7 +173,7 @@ Sois précis et cite les articles pertinents.`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'meta-llama/Llama-3.1-70B-Instruct',
+        model: ANALYSIS_MODEL,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: `Contexte du contrat:\n${contractContext}\n\nQuestion de l'utilisateur: ${question}` }
