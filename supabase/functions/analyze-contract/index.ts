@@ -29,9 +29,9 @@ function calculateRiskScore(analysis: AnalysisResult): number {
   let score = 0;
   
   analysis.redFlags.forEach(flag => {
-    if (flag.gravite === "élevée") score += 25;
-    else if (flag.gravite === "modérée") score += 15;
-    else score += 5;
+    if (flag.gravite === "élevée") score += 20;
+    else if (flag.gravite === "modérée") score += 10;
+    else score += 3;
   });
   
   return Math.min(score, 100);
@@ -156,26 +156,27 @@ RÈGLES DE CLASSIFICATION DE LA GRAVITÉ (RESPECTE-LES STRICTEMENT)
 EXEMPLES CONCRETS DE SCORING (SUIS CE MODÈLE)
 ═══════════════════════════════════════════════════════════════
 
-📌 CONTRAT TRÈS GRAVE (score attendu : 90-100) :
-- Non-concurrence 5 ans France entière sans compensation → élevée (25 pts)
-- Pénalités 500€/jour sans plafond → élevée (25 pts)
-- Délai paiement 180 jours "à réception fonds client" → élevée (25 pts)
-- Arbitrage Singapour, frais 100% à charge prestataire → élevée (25 pts)
+📌 CONTRAT TRÈS GRAVE (score attendu : 80-100) :
+- Non-concurrence 5 ans France entière sans compensation → élevée (20 pts)
+- Pénalités 500€/jour sans plafond → élevée (20 pts)
+- Délai paiement 180 jours "à réception fonds client" → élevée (20 pts)
+- Arbitrage Singapour, frais 100% à charge prestataire → élevée (20 pts)
+- Cession PI totale → élevée (20 pts)
 TOTAL : 100 points
 
-📌 CONTRAT GRAVE (score attendu : 70-85) :
-- Non-concurrence 3 ans zone large → modérée (15 pts)
-- Pénalités 15% du montant → modérée (15 pts)
-- Préavis 6 mois vs 1 semaine → élevée (25 pts)
-- Délai paiement 90 jours → modérée (15 pts)
-- Cession PI sans compensation → modérée (15 pts)
-TOTAL : 85 points
+📌 CONTRAT GRAVE (score attendu : 50-70) :
+- Non-concurrence 3 ans zone large → modérée (10 pts)
+- Pénalités 15% du montant → modérée (10 pts)
+- Préavis 6 mois vs 1 semaine → élevée (20 pts)
+- Délai paiement 90 jours → modérée (10 pts)
+- Cession PI sans compensation → modérée (10 pts)
+TOTAL : 60 points
 
-📌 CONTRAT MODÉRÉ (score attendu : 40-60) :
-- Non-concurrence 2 ans avec compensation 30% → modérée (15 pts)
-- Préavis 3 mois vs 1 mois → modérée (15 pts)
-- Confidentialité 15 ans → faible (5 pts)
-TOTAL : 35 points
+📌 CONTRAT MODÉRÉ (score attendu : 20-40) :
+- Non-concurrence 2 ans avec compensation 30% → modérée (10 pts)
+- Préavis 3 mois vs 1 mois → modérée (10 pts)
+- Confidentialité 15 ans → faible (3 pts)
+TOTAL : 23 points
 
 ⚠️ CONSIGNE CRITIQUE : 
 - Un contrat avec 10+ clauses abusives DOIT avoir un MIX de gravités (pas tout en "élevée")
