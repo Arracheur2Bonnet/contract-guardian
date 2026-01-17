@@ -231,7 +231,7 @@ Réponds UNIQUEMENT en JSON valide avec cette structure EXACTE :
           { role: "user", content: `Analyse ce contrat en détail et détecte tous les red flags :\n\n${contractText}` }
         ],
         temperature: 0.1,
-        max_tokens: 8000,
+        max_tokens: 4000,
       }),
     });
 
