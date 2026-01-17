@@ -86,3 +86,65 @@ export async function askQuestion(question: string, contractContext: string): Pr
     return "Désolé, une erreur s'est produite. Veuillez réessayer.";
   }
 }
+
+/**
+ * Obtient des conseils de négociation basés sur le contrat et les red flags
+ * @param contractText - Le texte du contrat
+ * @param redFlags - Les problèmes détectés
+ * @returns Les conseils de négociation
+ */
+export async function getNegotiationAdvice(contractText: string, redFlags: any[]): Promise<string> {
+  console.log('🤝 Appel de l\'edge function pour négociation...');
+  
+  try {
+    const { data, error } = await supabase.functions.invoke('analyze-contract', {
+      body: { 
+        action: 'negotiate',
+        contractText,
+        redFlags
+      }
+    });
+
+    if (error) {
+      console.error('❌ Erreur edge function:', error);
+      return "Désolé, une erreur s'est produite lors de l'analyse de négociation.";
+    }
+
+    return data?.advice || "Désolé, une erreur s'est produite. Veuillez réessayer.";
+    
+  } catch (error) {
+    console.error('❌ Erreur appel edge function:', error);
+    return "Désolé, une erreur s'est produite. Veuillez réessayer.";
+  }
+}
+
+/**
+ * Obtient une expertise juridique détaillée du contrat
+ * @param contractText - Le texte du contrat
+ * @param redFlags - Les problèmes détectés
+ * @returns L'expertise juridique
+ */
+export async function getLegalExpertise(contractText: string, redFlags: any[]): Promise<string> {
+  console.log('⚖️ Appel de l\'edge function pour expertise juridique...');
+  
+  try {
+    const { data, error } = await supabase.functions.invoke('analyze-contract', {
+      body: { 
+        action: 'expertise',
+        contractText,
+        redFlags
+      }
+    });
+
+    if (error) {
+      console.error('❌ Erreur edge function:', error);
+      return "Désolé, une erreur s'est produite lors de l'expertise juridique.";
+    }
+
+    return data?.expertise || "Désolé, une erreur s'est produite. Veuillez réessayer.";
+    
+  } catch (error) {
+    console.error('❌ Erreur appel edge function:', error);
+    return "Désolé, une erreur s'est produite. Veuillez réessayer.";
+  }
+}

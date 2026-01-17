@@ -99,6 +99,117 @@ Sois précis et cite les articles pertinents.`;
       );
     }
 
+    // Handle negotiation advice action
+    if (action === 'negotiate') {
+      console.log("🤝 Processing negotiation advice...");
+      const { contractText: contractForNegotiation, redFlags } = await req.json().catch(() => ({}));
+      
+      const negotiateSystemPrompt = `Tu es un expert en négociation de contrats. Ton rôle est de fournir des conseils pratiques et stratégiques pour renégocier les clauses problématiques d'un contrat.
+
+Pour chaque red flag identifié, tu dois proposer :
+1. Une reformulation alternative de la clause
+2. Les arguments à utiliser pour convaincre l'autre partie
+3. Le niveau de priorité de cette négociation
+
+Réponds de manière structurée et professionnelle en français.
+Utilise des puces et des sections claires.
+Sois concret et actionnable dans tes recommandations.`;
+
+      const redFlagsContext = redFlags && redFlags.length > 0 
+        ? `\n\nProblèmes détectés dans le contrat :\n${redFlags.map((rf: any) => `- ${rf.titre} (${rf.gravite}): ${rf.description}`).join('\n')}`
+        : '';
+
+      const response = await fetch("https://api.featherless.ai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${FEATHERLESS_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "Qwen/Qwen2.5-72B-Instruct",
+          messages: [
+            { role: "system", content: negotiateSystemPrompt },
+            { role: "user", content: `Voici le contrat à analyser pour la négociation :\n\n${contractForNegotiation || contractText}${redFlagsContext}\n\nDonne-moi des conseils concrets pour négocier les clauses problématiques.` }
+          ],
+          temperature: 0.4,
+          max_tokens: 2000,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error("Featherless API error for negotiation:", response.status);
+        return new Response(
+          JSON.stringify({ advice: "Désolé, une erreur s'est produite. Veuillez réessayer." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const data = await response.json();
+      const advice = data.choices?.[0]?.message?.content || "Désolé, une erreur s'est produite.";
+      console.log("✅ Negotiation advice generated");
+      
+      return new Response(
+        JSON.stringify({ advice }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Handle legal expertise action
+    if (action === 'expertise') {
+      console.log("⚖️ Processing legal expertise...");
+      const { contractText: contractForExpertise, redFlags } = await req.json().catch(() => ({}));
+      
+      const expertiseSystemPrompt = `Tu es un avocat expert en droit des contrats français. Ton rôle est de fournir une analyse juridique approfondie du contrat.
+
+Tu dois analyser :
+1. La conformité du contrat avec le droit français (Code civil, Code du travail si applicable)
+2. Les risques juridiques pour chaque partie
+3. La validité et l'applicabilité des clauses
+4. Les recours possibles en cas de litige
+
+Cite les articles de loi pertinents quand c'est possible.
+Réponds de manière structurée et professionnelle en français.
+Sois précis dans ton analyse juridique.`;
+
+      const redFlagsContext = redFlags && redFlags.length > 0 
+        ? `\n\nProblèmes déjà identifiés :\n${redFlags.map((rf: any) => `- ${rf.titre} (${rf.gravite}): ${rf.description}`).join('\n')}`
+        : '';
+
+      const response = await fetch("https://api.featherless.ai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${FEATHERLESS_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "Qwen/Qwen2.5-72B-Instruct",
+          messages: [
+            { role: "system", content: expertiseSystemPrompt },
+            { role: "user", content: `Voici le contrat à analyser juridiquement :\n\n${contractForExpertise || contractText}${redFlagsContext}\n\nFournis-moi une expertise juridique complète de ce contrat.` }
+          ],
+          temperature: 0.3,
+          max_tokens: 2500,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error("Featherless API error for expertise:", response.status);
+        return new Response(
+          JSON.stringify({ expertise: "Désolé, une erreur s'est produite. Veuillez réessayer." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const data = await response.json();
+      const expertise = data.choices?.[0]?.message?.content || "Désolé, une erreur s'est produite.";
+      console.log("✅ Legal expertise generated");
+      
+      return new Response(
+        JSON.stringify({ expertise }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Default: analyze contract
     if (!contractText || contractText.trim().length === 0) {
       console.error("No contract text provided");
