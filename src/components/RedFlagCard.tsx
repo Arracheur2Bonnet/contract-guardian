@@ -48,7 +48,7 @@ const RedFlagCard = ({ flag }: RedFlagCardProps) => {
   const Icon = styles.icon;
 
   return (
-    <div className={cn("border rounded-lg p-5", styles.bg, styles.border)}>
+    <div className={cn("card-minimal p-5", styles.bg, styles.border)}>
       <div className="flex items-start gap-4">
         <div className={cn("mt-0.5", styles.iconColor)}>
           <Icon size={22} />
