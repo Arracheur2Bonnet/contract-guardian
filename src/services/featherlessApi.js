@@ -2,7 +2,7 @@ const API_URL = 'https://api.featherless.ai/v1/chat/completions';
 const API_KEY = 'rc_dead7c4f14100aa214d67505ea13768a860ade546fc163628ef17cdeb97b9736'; 
 
 const MODELS = {
-  analysis: 'Qwen/Qwen2.5-72B-Instruct',  // Pour analyse contrats
+  analysis: 'moonshotai/Kimi-K2-Instruct',  // Pour analyse contrats
   chat: 'Qwen/Qwen2.5-7B-Instruct'        // Pour chat Q&A
 };
 
