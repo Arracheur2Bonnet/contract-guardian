@@ -44,8 +44,62 @@ serve(async (req) => {
   }
 
   try {
-    const { contractText } = await req.json();
+    const { contractText, action, question, contractContext } = await req.json();
     
+    const FEATHERLESS_API_KEY = Deno.env.get("FEATHERLESS_API_KEY");
+    if (!FEATHERLESS_API_KEY) {
+      console.error("FEATHERLESS_API_KEY not configured");
+      return new Response(
+        JSON.stringify({ success: false, error: "Clé API non configurée" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Handle Q&A action
+    if (action === 'ask') {
+      console.log("💬 Processing question about contract...");
+      
+      const chatSystemPrompt = `Tu es un expert juridique qui répond aux questions sur un contrat.
+Réponds de manière claire et concise en français.
+Si la réponse n'est pas dans le contrat, dis-le clairement.
+Sois précis et cite les articles pertinents.`;
+
+      const response = await fetch("https://api.featherless.ai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${FEATHERLESS_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "Qwen/Qwen2.5-72B-Instruct",
+          messages: [
+            { role: "system", content: chatSystemPrompt },
+            { role: "user", content: `Contexte du contrat:\n${contractContext}\n\nQuestion de l'utilisateur: ${question}` }
+          ],
+          temperature: 0.3,
+          max_tokens: 1000,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error("Featherless API error for chat:", response.status);
+        return new Response(
+          JSON.stringify({ answer: "Désolé, une erreur s'est produite. Veuillez réessayer." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const data = await response.json();
+      const answer = data.choices?.[0]?.message?.content || "Désolé, une erreur s'est produite.";
+      console.log("✅ Chat response generated");
+      
+      return new Response(
+        JSON.stringify({ answer }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Default: analyze contract
     if (!contractText || contractText.trim().length === 0) {
       console.error("No contract text provided");
       return new Response(
@@ -55,15 +109,6 @@ serve(async (req) => {
     }
 
     console.log("Analyzing contract with length:", contractText.length);
-
-    const FEATHERLESS_API_KEY = Deno.env.get("FEATHERLESS_API_KEY");
-    if (!FEATHERLESS_API_KEY) {
-      console.error("FEATHERLESS_API_KEY not configured");
-      return new Response(
-        JSON.stringify({ success: false, error: "Clé API non configurée" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
 
     const systemPrompt = `Tu es un expert juridique français spécialisé dans l'analyse de contrats. 
 
@@ -171,7 +216,7 @@ Réponds UNIQUEMENT en JSON valide avec cette structure EXACTE :
   "resume": "Ce contrat présente plusieurs clauses très problématiques qui exposent le prestataire à des risques financiers et juridiques majeurs."
 }`;
 
-    console.log("Calling Featherless API with Kimi-K2-Instruct model...");
+    console.log("Calling Featherless API with Qwen/Qwen2.5-72B-Instruct model...");
 
     const response = await fetch("https://api.featherless.ai/v1/chat/completions", {
       method: "POST",
@@ -180,7 +225,7 @@ Réponds UNIQUEMENT en JSON valide avec cette structure EXACTE :
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "moonshotai/Kimi-K2-Instruct",
+        model: "Qwen/Qwen2.5-72B-Instruct",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: `Analyse ce contrat en détail et détecte tous les red flags :\n\n${contractText}` }
