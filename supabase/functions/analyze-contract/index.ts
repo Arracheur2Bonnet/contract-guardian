@@ -37,6 +37,44 @@ function calculateRiskScore(analysis: AnalysisResult): number {
   return Math.min(score, 100);
 }
 
+async function callLovableAI(messages: { role: string; content: string }[], maxTokens: number = 4000) {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) {
+    throw new Error("LOVABLE_API_KEY not configured");
+  }
+
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      messages,
+      temperature: 0.1,
+      max_tokens: maxTokens,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("Lovable AI error:", response.status, errorText);
+    
+    if (response.status === 429) {
+      throw new Error("Rate limit exceeded. Please try again later.");
+    }
+    if (response.status === 402) {
+      throw new Error("Payment required. Please add credits to your workspace.");
+    }
+    
+    throw new Error(`AI API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -45,15 +83,6 @@ serve(async (req) => {
 
   try {
     const { contractText, action, question, contractContext, redFlags } = await req.json();
-    
-    const FEATHERLESS_API_KEY = Deno.env.get("FEATHERLESS_API_KEY");
-    if (!FEATHERLESS_API_KEY) {
-      console.error("FEATHERLESS_API_KEY not configured");
-      return new Response(
-        JSON.stringify({ success: false, error: "Clé API non configurée" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
 
     // Handle Q&A action
     if (action === 'ask') {
@@ -64,39 +93,24 @@ Réponds de manière claire et concise en français.
 Si la réponse n'est pas dans le contrat, dis-le clairement.
 Sois précis et cite les articles pertinents.`;
 
-      const response = await fetch("https://api.featherless.ai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${FEATHERLESS_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "Qwen/Qwen2.5-72B-Instruct",
-          messages: [
-            { role: "system", content: chatSystemPrompt },
-            { role: "user", content: `Contexte du contrat:\n${contractContext}\n\nQuestion de l'utilisateur: ${question}` }
-          ],
-          temperature: 0.3,
-          max_tokens: 1000,
-        }),
-      });
+      try {
+        const answer = await callLovableAI([
+          { role: "system", content: chatSystemPrompt },
+          { role: "user", content: `Contexte du contrat:\n${contractContext}\n\nQuestion de l'utilisateur: ${question}` }
+        ], 1000);
 
-      if (!response.ok) {
-        console.error("Featherless API error for chat:", response.status);
+        console.log("✅ Chat response generated");
+        return new Response(
+          JSON.stringify({ answer: answer || "Désolé, une erreur s'est produite." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch (error) {
+        console.error("Error in chat:", error);
         return new Response(
           JSON.stringify({ answer: "Désolé, une erreur s'est produite. Veuillez réessayer." }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-
-      const data = await response.json();
-      const answer = data.choices?.[0]?.message?.content || "Désolé, une erreur s'est produite.";
-      console.log("✅ Chat response generated");
-      
-      return new Response(
-        JSON.stringify({ answer }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
     }
 
     // Handle negotiation advice action
@@ -134,39 +148,24 @@ Pour chaque clause problématique :
 
 Sois diplomate mais ferme. Utilise un ton professionnel.`;
 
-      const response = await fetch("https://api.featherless.ai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${FEATHERLESS_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "Qwen/Qwen2.5-72B-Instruct",
-          messages: [
-            { role: "system", content: negotiateSystemPrompt },
-            { role: "user", content: `Voici le contrat à analyser :\n\n${contractContext || contractText}\n\n--- PROBLÈMES DÉTECTÉS ---\n\n${redFlagsContext}\n\nDonne-moi des conseils concrets pour négocier ces clauses problématiques.` }
-          ],
-          temperature: 0.4,
-          max_tokens: 2500,
-        }),
-      });
+      try {
+        const advice = await callLovableAI([
+          { role: "system", content: negotiateSystemPrompt },
+          { role: "user", content: `Voici le contrat à analyser :\n\n${contractContext || contractText}\n\n--- PROBLÈMES DÉTECTÉS ---\n\n${redFlagsContext}\n\nDonne-moi des conseils concrets pour négocier ces clauses problématiques.` }
+        ], 2500);
 
-      if (!response.ok) {
-        console.error("Featherless API error for negotiation:", response.status);
+        console.log("✅ Negotiation advice generated");
+        return new Response(
+          JSON.stringify({ advice: advice || "Désolé, une erreur s'est produite." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch (error) {
+        console.error("Error in negotiation:", error);
         return new Response(
           JSON.stringify({ advice: "Désolé, une erreur s'est produite. Veuillez réessayer." }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-
-      const data = await response.json();
-      const advice = data.choices?.[0]?.message?.content || "Désolé, une erreur s'est produite.";
-      console.log("✅ Negotiation advice generated");
-      
-      return new Response(
-        JSON.stringify({ advice }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
     }
 
     // Handle legal expertise action
@@ -213,39 +212,24 @@ Pour chaque clause problématique :
 
 Sois précis dans tes références légales (articles de loi, jurisprudence). Reste accessible pour un non-juriste.`;
 
-      const response = await fetch("https://api.featherless.ai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${FEATHERLESS_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "Qwen/Qwen2.5-72B-Instruct",
-          messages: [
-            { role: "system", content: legalSystemPrompt },
-            { role: "user", content: `Voici le contrat à analyser juridiquement :\n\n${contractContext || contractText}\n\n--- PROBLÈMES DÉTECTÉS ---\n\n${redFlagsContext}\n\nFournis-moi une expertise juridique complète de ce contrat.` }
-          ],
-          temperature: 0.3,
-          max_tokens: 3000,
-        }),
-      });
+      try {
+        const expertise = await callLovableAI([
+          { role: "system", content: legalSystemPrompt },
+          { role: "user", content: `Voici le contrat à analyser juridiquement :\n\n${contractContext || contractText}\n\n--- PROBLÈMES DÉTECTÉS ---\n\n${redFlagsContext}\n\nFournis-moi une expertise juridique complète de ce contrat.` }
+        ], 3000);
 
-      if (!response.ok) {
-        console.error("Featherless API error for legal expertise:", response.status);
+        console.log("✅ Legal expertise generated");
+        return new Response(
+          JSON.stringify({ expertise: expertise || "Désolé, une erreur s'est produite." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch (error) {
+        console.error("Error in legal expertise:", error);
         return new Response(
           JSON.stringify({ expertise: "Désolé, une erreur s'est produite. Veuillez réessayer." }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-
-      const data = await response.json();
-      const expertise = data.choices?.[0]?.message?.content || "Désolé, une erreur s'est produite.";
-      console.log("✅ Legal expertise generated");
-      
-      return new Response(
-        JSON.stringify({ expertise }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
     }
 
     // Default: analyze contract
@@ -366,105 +350,98 @@ Réponds UNIQUEMENT en JSON valide avec cette structure EXACTE :
   "resume": "Ce contrat présente plusieurs clauses très problématiques qui exposent le prestataire à des risques financiers et juridiques majeurs."
 }`;
 
-    console.log("Calling Featherless API with Qwen/Qwen2.5-72B-Instruct model...");
+    console.log("Calling Lovable AI...");
 
-    const response = await fetch("https://api.featherless.ai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${FEATHERLESS_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "Qwen/Qwen2.5-72B-Instruct",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: `Analyse ce contrat en détail et détecte tous les red flags :\n\n${contractText}` }
-        ],
-        temperature: 0.1,
-        max_tokens: 4000,
-      }),
-    });
+    try {
+      const content = await callLovableAI([
+        { role: "system", content: systemPrompt },
+        { role: "user", content: `Analyse ce contrat en détail et détecte tous les red flags :\n\n${contractText}` }
+      ], 4000);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Featherless API error:", response.status, errorText);
-      
-      if (response.status === 503) {
+      if (!content) {
+        console.error("No content in API response");
         return new Response(
-          JSON.stringify({ success: false, error: "Service temporairement indisponible, veuillez réessayer" }),
-          { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ success: false, error: "Réponse invalide de l'IA" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      
-      return new Response(
-        JSON.stringify({ success: false, error: "Erreur lors de l'analyse du contrat" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
 
-    const data = await response.json();
-    console.log("Featherless API response received");
-
-    const content = data.choices?.[0]?.message?.content;
-    if (!content) {
-      console.error("No content in API response");
-      return new Response(
-        JSON.stringify({ success: false, error: "Réponse invalide de l'IA" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Parse JSON from response, handling potential markdown code blocks
-    let analysis: AnalysisResult;
-    try {
-      let jsonContent = content.trim();
-      // Remove markdown code blocks if present
-      if (jsonContent.startsWith("```json")) {
-        jsonContent = jsonContent.slice(7);
-      } else if (jsonContent.startsWith("```")) {
-        jsonContent = jsonContent.slice(3);
+      // Parse JSON from response, handling potential markdown code blocks
+      let analysis: AnalysisResult;
+      try {
+        let jsonContent = content.trim();
+        // Remove markdown code blocks if present
+        if (jsonContent.startsWith("```json")) {
+          jsonContent = jsonContent.slice(7);
+        } else if (jsonContent.startsWith("```")) {
+          jsonContent = jsonContent.slice(3);
+        }
+        if (jsonContent.endsWith("```")) {
+          jsonContent = jsonContent.slice(0, -3);
+        }
+        jsonContent = jsonContent.trim();
+        
+        analysis = JSON.parse(jsonContent);
+      } catch (parseError) {
+        console.error("Failed to parse JSON response:", parseError);
+        console.error("Raw content:", content);
+        
+        // Try to extract JSON from the response
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          try {
+            analysis = JSON.parse(jsonMatch[0]);
+          } catch {
+            return new Response(
+              JSON.stringify({ 
+                success: false, 
+                error: "Erreur lors de l'analyse du contrat. Veuillez réessayer." 
+              }),
+              { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+        } else {
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: "Erreur lors de l'analyse du contrat. Veuillez réessayer." 
+            }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
       }
-      if (jsonContent.endsWith("```")) {
-        jsonContent = jsonContent.slice(0, -3);
-      }
-      jsonContent = jsonContent.trim();
-      
-      analysis = JSON.parse(jsonContent);
-    } catch (parseError) {
-      console.error("Failed to parse AI response:", parseError, "Content:", content);
+
+      const riskScore = calculateRiskScore(analysis);
+      console.log("Analysis complete. Risk score:", riskScore);
+
       return new Response(
-        JSON.stringify({ success: false, error: "Erreur lors de l'interprétation de l'analyse" }),
+        JSON.stringify({
+          success: true,
+          riskScore,
+          redFlags: analysis.redFlags || [],
+          standardClauses: analysis.standardClauses || [],
+          resume: analysis.resume || "Analyse du contrat terminée.",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    } catch (error) {
+      console.error("Error analyzing contract:", error);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: error instanceof Error ? error.message : "Erreur lors de l'analyse du contrat" 
+        }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    // Debug logs
-    console.log("=== DEBUG ANALYSE ===");
-    console.log("Nombre de red flags:", analysis.redFlags.length);
-    console.log("Détail des gravités:", analysis.redFlags.map(f => ({
-      titre: f.titre,
-      gravite: f.gravite
-    })));
-    console.log("====================");
-
-    const riskScore = calculateRiskScore(analysis);
-    console.log("Analysis complete. Risk score:", riskScore, "Red flags:", analysis.redFlags.length);
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        riskScore,
-        redFlags: analysis.redFlags,
-        standardClauses: analysis.standardClauses,
-        resume: analysis.resume,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
 
   } catch (error) {
-    console.error("Error in analyze-contract function:", error);
+    console.error("Error in edge function:", error);
     return new Response(
-      JSON.stringify({ success: false, error: "Erreur lors de l'analyse du contrat" }),
+      JSON.stringify({ 
+        success: false, 
+        error: error instanceof Error ? error.message : "Erreur interne du serveur" 
+      }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
