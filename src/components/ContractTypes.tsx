@@ -1,17 +1,59 @@
-import { Briefcase, Home, FileText, Lock, ShoppingCart, Users } from "lucide-react";
+import { Briefcase, FileText, Home, Lock, ShoppingCart, Users } from "lucide-react";
 
 const contractTypes = [
-  { icon: Briefcase, name: "Freelance", description: "Contrats de prestation", color: "from-blue-500 to-blue-600" },
-  { icon: FileText, name: "CDI/CDD", description: "Contrats de travail", color: "from-purple-500 to-purple-600" },
-  { icon: Home, name: "Bail", description: "Contrats de location", color: "from-emerald-500 to-emerald-600" },
-  { icon: Lock, name: "NDA", description: "Accords de confidentialité", color: "from-orange-500 to-orange-600" },
-  { icon: ShoppingCart, name: "Vente", description: "Contrats commerciaux", color: "from-pink-500 to-pink-600" },
-  { icon: Users, name: "Associés", description: "Pactes d'actionnaires", color: "from-cyan-500 to-cyan-600" },
+  {
+    icon: Briefcase,
+    title: "Freelance",
+    description: "Contrats de prestation",
+    iconBg: "icon-bg-blue",
+    iconColor: "icon-blue",
+    hoverBg: "hover:bg-[hsl(217,91%,98%)]",
+  },
+  {
+    icon: FileText,
+    title: "CDI / CDD",
+    description: "Contrats de travail",
+    iconBg: "icon-bg-violet",
+    iconColor: "icon-violet",
+    hoverBg: "hover:bg-[hsl(263,84%,98%)]",
+  },
+  {
+    icon: Home,
+    title: "Bail",
+    description: "Location immobilière",
+    iconBg: "icon-bg-green",
+    iconColor: "icon-green",
+    hoverBg: "hover:bg-[hsl(160,84%,97%)]",
+  },
+  {
+    icon: Lock,
+    title: "NDA",
+    description: "Confidentialité",
+    iconBg: "icon-bg-orange",
+    iconColor: "icon-orange",
+    hoverBg: "hover:bg-[hsl(38,92%,97%)]",
+  },
+  {
+    icon: ShoppingCart,
+    title: "Vente",
+    description: "Conditions générales",
+    iconBg: "icon-bg-rose",
+    iconColor: "icon-rose",
+    hoverBg: "hover:bg-[hsl(330,81%,98%)]",
+  },
+  {
+    icon: Users,
+    title: "Associés",
+    description: "Pactes d'associés",
+    iconBg: "icon-bg-cyan",
+    iconColor: "icon-cyan",
+    hoverBg: "hover:bg-[hsl(185,93%,97%)]",
+  },
 ];
 
 const ContractTypes = () => {
   return (
-    <section className="py-24 bg-muted/30">
+    <section className="py-24">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
           <span className="inline-block text-sm font-medium text-primary mb-3 bg-accent px-4 py-1.5 rounded-full">
@@ -24,18 +66,18 @@ const ContractTypes = () => {
             Notre IA est entraînée sur les contrats français les plus courants
           </p>
         </div>
-        
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 max-w-5xl mx-auto">
+
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 lg:gap-6 max-w-4xl mx-auto">
           {contractTypes.map((type, index) => (
             <div
               key={index}
-              className="group bg-card border border-border/50 rounded-2xl p-5 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 text-center"
+              className={`group bg-card rounded-2xl p-6 text-center shadow-sm border border-border/50 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 ${type.hoverBg}`}
             >
-              <div className={`w-14 h-14 mx-auto mb-4 rounded-xl bg-gradient-to-br ${type.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
-                <type.icon className="text-white" size={24} />
+              <div className={`w-14 h-14 ${type.iconBg} rounded-xl flex items-center justify-center mx-auto mb-4 transition-transform duration-300 group-hover:scale-110`}>
+                <type.icon className={type.iconColor} size={26} />
               </div>
-              <p className="font-semibold text-sm mb-1">{type.name}</p>
-              <p className="text-xs text-muted-foreground">{type.description}</p>
+              <h3 className="font-semibold text-base mb-1">{type.title}</h3>
+              <p className="text-muted-foreground text-sm">{type.description}</p>
             </div>
           ))}
         </div>

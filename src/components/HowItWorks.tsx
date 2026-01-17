@@ -6,27 +6,30 @@ const steps = [
     title: "Uploadez",
     step: "01",
     description: "Déposez votre contrat au format PDF (max 10 MB, 50 pages)",
-    color: "from-blue-500 to-cyan-500",
+    iconBg: "icon-bg-blue",
+    iconColor: "icon-blue",
   },
   {
     icon: Cpu,
     title: "Analyse IA",
     step: "02",
     description: "Notre IA examine chaque clause en détail (20-40 secondes)",
-    color: "from-purple-500 to-pink-500",
+    iconBg: "icon-bg-rose",
+    iconColor: "icon-rose",
   },
   {
     icon: FileCheck,
     title: "Rapport",
     step: "03",
     description: "Recevez un rapport avec score de risque et points d'attention",
-    color: "from-emerald-500 to-teal-500",
+    iconBg: "icon-bg-cyan",
+    iconColor: "icon-cyan",
   },
 ];
 
 const HowItWorks = () => {
   return (
-    <section className="py-24 relative">
+    <section className="py-24 relative bg-muted/30">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
           <span className="inline-block text-sm font-medium text-primary mb-3 bg-accent px-4 py-1.5 rounded-full">
@@ -40,30 +43,30 @@ const HowItWorks = () => {
           </p>
         </div>
         
-        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+        <div className="grid md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl mx-auto">
           {steps.map((step, index) => (
             <div
               key={index}
-              className="group relative bg-card border border-border/50 rounded-2xl p-8 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-2"
+              className="group relative bg-card rounded-3xl p-8 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
             >
               {/* Step number */}
-              <div className="absolute -top-4 -right-4 w-12 h-12 bg-muted rounded-xl flex items-center justify-center text-sm font-bold text-muted-foreground border border-border/50">
+              <div className="absolute -top-3 -right-3 w-10 h-10 bg-muted rounded-xl flex items-center justify-center text-xs font-bold text-muted-foreground border border-border">
                 {step.step}
               </div>
               
               {/* Icon */}
-              <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${step.color} flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform`}>
-                <step.icon className="text-white" size={28} />
+              <div className={`w-14 h-14 rounded-2xl ${step.iconBg} flex items-center justify-center mb-6`}>
+                <step.icon className={step.iconColor} size={26} />
               </div>
               
               <h3 className="font-semibold text-xl mb-3">{step.title}</h3>
-              <p className="text-muted-foreground leading-relaxed">{step.description}</p>
+              <p className="text-muted-foreground leading-relaxed text-sm">{step.description}</p>
               
               {/* Arrow connector (hidden on last item and mobile) */}
               {index < steps.length - 1 && (
-                <div className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 z-10">
-                  <div className="w-6 h-6 rounded-full bg-card border border-border flex items-center justify-center">
-                    <ArrowRight size={12} className="text-muted-foreground" />
+                <div className="hidden lg:flex absolute -right-4 top-1/2 -translate-y-1/2 z-10">
+                  <div className="w-8 h-8 rounded-full bg-card border border-border flex items-center justify-center shadow-sm">
+                    <ArrowRight size={14} className="text-muted-foreground" />
                   </div>
                 </div>
               )}
