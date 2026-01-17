@@ -49,7 +49,7 @@ const Results = () => {
       }
 
       const data = await getContractAnalysis(id);
-      if (!data || data.status !== 'analyzed') {
+      if (!data || (data.status !== 'analyzed' && data.status !== 'completed')) {
         navigate("/analyze");
         return;
       }

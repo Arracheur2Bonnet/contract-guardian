@@ -175,7 +175,7 @@ const Analyze = () => {
         red_flags: result.redFlags || [],
         standard_clauses: result.standardClauses || [],
         resume: result.resume || null,
-        status: 'analyzed'
+        status: 'completed'
       });
 
       // Increment credits used after successful analysis

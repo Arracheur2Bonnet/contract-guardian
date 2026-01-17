@@ -72,16 +72,17 @@ const History = () => {
 
             <div className="space-y-2">
               {group.items.map((item) => {
-                const verdict = item.status === 'analyzed' ? getVerdict(item.risk_score) : null;
-                
+                const isCompleted = item.status === "analyzed" || item.status === "completed";
+                const verdict = isCompleted ? getVerdict(item.risk_score) : null;
+
                 return (
                   <div
                     key={item.id}
-                    onClick={() => item.status === 'analyzed' && navigate(`/results/${item.id}`)}
+                    onClick={() => isCompleted && navigate(`/results/${item.id}`)}
                     className={cn(
                       "bg-card border border-border rounded-xl p-4 flex items-center gap-4 transition-all",
-                      item.status === 'analyzed' 
-                        ? "hover:shadow-md hover:-translate-y-0.5 cursor-pointer" 
+                      isCompleted
+                        ? "hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
                         : "opacity-70"
                     )}
                   >
@@ -94,7 +95,7 @@ const History = () => {
                       <p className="text-xs text-muted-foreground">{item.contract_type}</p>
                     </div>
 
-                    {item.status === "analyzed" && verdict && (
+                    {isCompleted && verdict && (
                       <>
                         <span className={cn(
                           "text-xs font-medium px-2.5 py-1 rounded-full border hidden sm:inline-flex",
