@@ -48,6 +48,26 @@ const KanbanBoard = () => {
 
   useEffect(() => {
     fetchContracts();
+
+    // Subscribe to realtime changes
+    const channel = supabase
+      .channel('kanban-contracts')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'contract_analyses'
+        },
+        () => {
+          fetchContracts();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchContracts = async () => {
