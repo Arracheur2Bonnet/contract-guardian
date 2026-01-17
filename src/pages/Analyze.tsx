@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Loader2, AlertTriangle, Briefcase, Home, FileText, Lock, ShoppingCart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { analyzeContract } from "@/services/featherlessApi";
+import { createContractAnalysis, updateContractAnalysis, getVerdict, detectContractType, extractContractName } from "@/services/contractService";
 import * as pdfjsLib from "pdfjs-dist";
 
 // Configure PDF.js worker
@@ -107,17 +108,41 @@ const Analyze = () => {
         throw new Error("Ce PDF ne contient pas de texte analysable");
       }
 
+      // Detect contract type and extract name
+      const contractType = detectContractType(contractText, file.name);
+      const contractName = extractContractName(file.name, contractText);
+
+      // Create entry in database
+      const contractEntry = await createContractAnalysis(contractName, contractType, contractText);
+      
+      if (!contractEntry) {
+        throw new Error("Erreur lors de la création de l'analyse");
+      }
+
       // Call the API directly
       const result = await analyzeContract(contractText);
 
       if (!result.success) {
+        // Update status to failed
+        await updateContractAnalysis(contractEntry.id, { status: 'failed' });
         throw new Error(result.error || "Erreur lors de l'analyse du contrat");
       }
 
-      // Store results in sessionStorage
-      sessionStorage.setItem("analysisResult", JSON.stringify(result));
-      sessionStorage.setItem("contractText", contractText);
-      navigate("/results");
+      // Calculate verdict
+      const verdict = getVerdict(result.riskScore);
+
+      // Update the database entry with results
+      await updateContractAnalysis(contractEntry.id, {
+        risk_score: result.riskScore,
+        verdict,
+        red_flags: result.redFlags || [],
+        standard_clauses: result.standardClauses || [],
+        resume: result.resume || null,
+        status: 'analyzed'
+      });
+
+      // Navigate to results with the contract ID
+      navigate(`/results/${contractEntry.id}`);
     } catch (err: any) {
       console.error("Analysis error:", err);
       const errorMessage = err.message || "Une erreur est survenue lors de l'analyse. Veuillez réessayer.";
@@ -143,7 +168,7 @@ const Analyze = () => {
           />
 
           <div className="mt-6">
-            <p className="text-sm font-medium mb-3">Types de contrats supportés :</p>
+            <p className="text-xs font-medium mb-3">Types de contrats supportés :</p>
             <div className="flex flex-wrap gap-2">
               {contractTypes.map((type) => (
                 <div
@@ -177,7 +202,7 @@ const Analyze = () => {
             {isAnalyzing && (
               <div className="mt-6 space-y-3">
                 <Progress value={progress} className="h-2" />
-                <div className="flex justify-between items-center text-sm">
+                <div className="flex justify-between items-center text-xs">
                   <span className="text-muted-foreground">{progressMessage}</span>
                   <span className="font-medium text-primary">{progress}%</span>
                 </div>
@@ -189,8 +214,8 @@ const Analyze = () => {
           </div>
         </div>
 
-        <div className="mt-6 flex items-start gap-2 text-sm text-muted-foreground bg-muted/50 p-4 rounded-lg">
-          <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
+        <div className="mt-6 flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 p-4 rounded-lg">
+          <AlertTriangle size={14} className="mt-0.5 flex-shrink-0" />
           <p>
             Cet outil est fourni à titre informatif uniquement et ne remplace pas les conseils d'un avocat qualifié.
           </p>

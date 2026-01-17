@@ -28,13 +28,18 @@ interface AnalysisResult {
 function calculateRiskScore(analysis: AnalysisResult): number {
   let score = 0;
   
+  // Adjusted scoring for more balanced results
   analysis.redFlags.forEach(flag => {
-    if (flag.gravite === "élevée") score += 20;
-    else if (flag.gravite === "modérée") score += 10;
+    if (flag.gravite === "élevée") score += 15;
+    else if (flag.gravite === "modérée") score += 8;
     else score += 3;
   });
   
-  return Math.min(score, 100);
+  // Apply a scaling factor to prevent extreme scores
+  // This makes scores more distributed across the range
+  const scaledScore = Math.round(score * 0.85);
+  
+  return Math.min(scaledScore, 100);
 }
 
 async function callLovableAI(messages: { role: string; content: string }[], maxTokens: number = 4000) {
