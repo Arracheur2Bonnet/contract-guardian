@@ -1,48 +1,71 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Upload, Loader2, FileText, AlertTriangle, CheckCircle } from "lucide-react";
+import { Upload, Loader2, FileText, AlertTriangle } from "lucide-react";
 import { Button } from "./ui/button";
 import { Progress } from "./ui/progress";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
-interface AnalyzedContract {
+interface Contract {
   id: string;
   name: string;
-  score: number;
-  risksCount: number;
-  date: string;
+  risk_score: number;
+  verdict: string;
+  red_flags: unknown;
+  created_at: string;
+  status: string;
 }
 
-interface InProgressContract {
-  id: string;
-  name: string;
-  progress: number;
-}
-
-// Mock data
-const analyzedContracts: AnalyzedContract[] = [
-  { id: "1", name: "Contrat Freelance.pdf", score: 25, risksCount: 2, date: "Aujourd'hui" },
-  { id: "2", name: "Bail_2024.pdf", score: 65, risksCount: 5, date: "Hier" },
-  { id: "3", name: "NDA_Startup.pdf", score: 45, risksCount: 3, date: "Il y a 2j" },
-];
-
-const getVerdict = (score: number) => {
-  if (score <= 30) return { label: "SIGNER", class: "verdict-sign" };
-  if (score <= 60) return { label: "NÉGOCIER", class: "verdict-negotiate" };
+const getVerdict = (verdict: string) => {
+  if (verdict === "SIGNER") return { label: "SIGNER", class: "verdict-sign" };
+  if (verdict === "NÉGOCIER") return { label: "NÉGOCIER", class: "verdict-negotiate" };
   return { label: "REFUSER", class: "verdict-refuse" };
 };
 
 const getScoreColor = (score: number) => {
-  if (score <= 30) return "text-success";
-  if (score <= 60) return "text-warning";
+  if (score <= 35) return "text-success";
+  if (score <= 65) return "text-warning";
   return "text-destructive";
+};
+
+const formatDate = (dateStr: string) => {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+  
+  if (diffDays === 0) return "Aujourd'hui";
+  if (diffDays === 1) return "Hier";
+  if (diffDays < 7) return `Il y a ${diffDays}j`;
+  return date.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
 };
 
 const KanbanBoard = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
-  const [inProgressContracts, setInProgressContracts] = useState<InProgressContract[]>([]);
+  const [contracts, setContracts] = useState<Contract[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchContracts();
+  }, []);
+
+  const fetchContracts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("contract_analyses")
+        .select("*")
+        .eq("status", "completed")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setContracts(data || []);
+    } catch (error) {
+      console.error("Error fetching contracts:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -63,7 +86,6 @@ const KanbanBoard = () => {
   };
 
   const handleFileUpload = (file: File) => {
-    // Navigate to analyze page with file
     navigate("/analyze", { state: { file } });
   };
 
@@ -78,15 +100,92 @@ const KanbanBoard = () => {
     }
   };
 
+  // Group contracts by verdict
+  const signerContracts = contracts.filter(c => c.verdict === "SIGNER");
+  const negocierContracts = contracts.filter(c => c.verdict === "NÉGOCIER");
+  const refuserContracts = contracts.filter(c => c.verdict === "REFUSER");
+
+  const renderContractCard = (contract: Contract) => {
+    const verdict = getVerdict(contract.verdict);
+    const redFlags = contract.red_flags;
+    const risksCount = Array.isArray(redFlags) ? redFlags.length : 0;
+
+    return (
+      <div
+        key={contract.id}
+        onClick={() => navigate(`/results/${contract.id}`)}
+        className="bg-card border border-border rounded-xl p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <FileText className="text-muted-foreground flex-shrink-0" size={16} />
+            <span className="font-medium text-sm truncate">{contract.name}</span>
+          </div>
+          <span className={cn(
+            "text-xs font-medium px-2 py-0.5 rounded-full border flex-shrink-0",
+            verdict.class
+          )}>
+            {verdict.label}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between mt-3">
+          <div className="flex items-center gap-3">
+            {/* Score Circle */}
+            <div className="relative w-10 h-10">
+              <svg className="w-full h-full -rotate-90">
+                <circle
+                  cx="20"
+                  cy="20"
+                  r="16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  className="text-muted/30"
+                />
+                <circle
+                  cx="20"
+                  cy="20"
+                  r="16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeDasharray={`${(contract.risk_score / 100) * 100} 100`}
+                  strokeLinecap="round"
+                  className={getScoreColor(contract.risk_score)}
+                />
+              </svg>
+              <span className={cn(
+                "absolute inset-0 flex items-center justify-center text-xs font-semibold",
+                getScoreColor(contract.risk_score)
+              )}>
+                {contract.risk_score}
+              </span>
+            </div>
+
+            {/* Risks count */}
+            {risksCount > 0 && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <AlertTriangle size={12} className="text-warning" />
+                <span>{risksCount}</span>
+              </div>
+            )}
+          </div>
+
+          <span className="text-xs text-muted-foreground">{formatDate(contract.created_at)}</span>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
       {/* Column 1: To Analyze */}
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-info/10 text-info">
             À analyser
           </span>
-          <span className="text-xs text-muted-foreground">0</span>
         </div>
 
         <div
@@ -127,119 +226,75 @@ const KanbanBoard = () => {
         </div>
       </div>
 
-      {/* Column 2: In Progress */}
+      {/* Column 2: À signer */}
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-warning/10 text-warning">
-            En cours
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-success/10 text-success">
+            À signer
           </span>
-          <span className="text-xs text-muted-foreground">{inProgressContracts.length}</span>
+          <span className="text-xs text-muted-foreground">{signerContracts.length}</span>
         </div>
 
         <div className="space-y-3">
-          {inProgressContracts.length === 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="animate-spin text-muted-foreground" size={20} />
+            </div>
+          ) : signerContracts.length === 0 ? (
             <div className="border border-dashed border-border rounded-xl p-6 text-center">
-              <p className="text-sm text-muted-foreground">Aucune analyse en cours</p>
+              <p className="text-sm text-muted-foreground">Aucun contrat</p>
             </div>
           ) : (
-            inProgressContracts.map((contract) => (
-              <div
-                key={contract.id}
-                className="bg-card border border-border rounded-xl p-4 shadow-sm"
-              >
-                <div className="flex items-center gap-3 mb-3">
-                  <Loader2 className="text-warning animate-spin" size={18} />
-                  <span className="font-medium text-sm truncate">{contract.name}</span>
-                </div>
-                <Progress value={contract.progress} className="h-1.5" />
-                <p className="text-xs text-muted-foreground mt-2 text-right">
-                  {contract.progress}%
-                </p>
-              </div>
-            ))
+            signerContracts.map(renderContractCard)
           )}
         </div>
       </div>
 
-      {/* Column 3: Analyzed */}
+      {/* Column 3: À négocier */}
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-success/10 text-success">
-            Analysés
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-warning/10 text-warning">
+            À négocier
           </span>
-          <span className="text-xs text-muted-foreground">{analyzedContracts.length}</span>
+          <span className="text-xs text-muted-foreground">{negocierContracts.length}</span>
         </div>
 
         <div className="space-y-3">
-          {analyzedContracts.map((contract) => {
-            const verdict = getVerdict(contract.score);
-            return (
-              <div
-                key={contract.id}
-                onClick={() => navigate("/results")}
-                className="bg-card border border-border rounded-xl p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <FileText className="text-muted-foreground flex-shrink-0" size={16} />
-                    <span className="font-medium text-sm truncate">{contract.name}</span>
-                  </div>
-                  <span className={cn(
-                    "text-xs font-medium px-2 py-0.5 rounded-full border flex-shrink-0",
-                    verdict.class
-                  )}>
-                    {verdict.label}
-                  </span>
-                </div>
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="animate-spin text-muted-foreground" size={20} />
+            </div>
+          ) : negocierContracts.length === 0 ? (
+            <div className="border border-dashed border-border rounded-xl p-6 text-center">
+              <p className="text-sm text-muted-foreground">Aucun contrat</p>
+            </div>
+          ) : (
+            negocierContracts.map(renderContractCard)
+          )}
+        </div>
+      </div>
 
-                <div className="flex items-center justify-between mt-3">
-                  <div className="flex items-center gap-3">
-                    {/* Score Circle */}
-                    <div className="relative w-10 h-10">
-                      <svg className="w-full h-full -rotate-90">
-                        <circle
-                          cx="20"
-                          cy="20"
-                          r="16"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="3"
-                          className="text-muted/30"
-                        />
-                        <circle
-                          cx="20"
-                          cy="20"
-                          r="16"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="3"
-                          strokeDasharray={`${(contract.score / 100) * 100} 100`}
-                          strokeLinecap="round"
-                          className={getScoreColor(contract.score)}
-                        />
-                      </svg>
-                      <span className={cn(
-                        "absolute inset-0 flex items-center justify-center text-xs font-semibold",
-                        getScoreColor(contract.score)
-                      )}>
-                        {contract.score}
-                      </span>
-                    </div>
+      {/* Column 4: À refuser */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-destructive/10 text-destructive">
+            À refuser
+          </span>
+          <span className="text-xs text-muted-foreground">{refuserContracts.length}</span>
+        </div>
 
-                    {/* Risks count */}
-                    {contract.risksCount > 0 && (
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <AlertTriangle size={12} className="text-warning" />
-                        <span>{contract.risksCount}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <span className="text-xs text-muted-foreground">{contract.date}</span>
-                </div>
-              </div>
-            );
-          })}
+        <div className="space-y-3">
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="animate-spin text-muted-foreground" size={20} />
+            </div>
+          ) : refuserContracts.length === 0 ? (
+            <div className="border border-dashed border-border rounded-xl p-6 text-center">
+              <p className="text-sm text-muted-foreground">Aucun contrat</p>
+            </div>
+          ) : (
+            refuserContracts.map(renderContractCard)
+          )}
         </div>
       </div>
     </div>
