@@ -4,8 +4,31 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, Star, Quote } from "lucide-react";
 import logoImage from "@/assets/logo.png";
+
+const testimonials = [
+  {
+    name: "Marie Dupont",
+    role: "CEO, TechStart SAS",
+    avatar: "MD",
+    text: "Contr'Act a révolutionné notre façon de gérer les contrats. Nous avons économisé plus de 50 000€.",
+  },
+  {
+    name: "Jean-Pierre Martin",
+    role: "Directeur Juridique, GroupeMedia",
+    avatar: "JM",
+    text: "Un outil indispensable. L'IA détecte des subtilités que même nos juristes auraient pu manquer.",
+  },
+  {
+    name: "Sophie Bernard",
+    role: "CEO, InnovateLab",
+    avatar: "SB",
+    text: "En tant que startup, Contr'Act nous a permis de négocier nos contrats en toute confiance.",
+  },
+];
+
+const pressLogos = ["Forbes", "Les Échos", "BFM Business", "Capital"];
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -108,110 +131,180 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="flex justify-center mb-8">
-          <div className="flex items-center gap-3">
+    <div className="min-h-screen bg-background flex">
+      {/* Left Side - Login Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-12">
+        <div className="w-full max-w-md">
+          {/* Logo */}
+          <div className="flex items-center gap-3 mb-8">
             <img src={logoImage} alt="Contr'Act" className="w-10 h-10" />
             <span className="font-bold text-2xl text-primary">Contr'Act</span>
           </div>
-        </div>
 
-        {/* Card */}
-        <div className="bg-card border border-border rounded-2xl p-8 shadow-lg">
-          <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold">
-              {isLogin ? "Connexion" : "Créer un compte"}
-            </h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              {isLogin 
-                ? "Accédez à votre espace Contr'Act" 
-                : "Rejoignez Contr'Act dès maintenant"}
-            </p>
-          </div>
+          {/* Card */}
+          <div className="bg-card border border-border rounded-2xl p-8 shadow-lg">
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold">
+                {isLogin ? "Connexion" : "Créer un compte"}
+              </h1>
+              <p className="text-muted-foreground text-sm mt-1">
+                {isLogin 
+                  ? "Accédez à votre espace Contr'Act" 
+                  : "Rejoignez Contr'Act dès maintenant"}
+              </p>
+            </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {!isLogin && (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {!isLogin && (
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">Nom complet</label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+                    <Input
+                      type="text"
+                      placeholder="Jean Dupont"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+              )}
+
               <div>
-                <label className="text-sm font-medium mb-1.5 block">Nom complet</label>
+                <label className="text-sm font-medium mb-1.5 block">Email</label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
                   <Input
-                    type="text"
-                    placeholder="Jean Dupont"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
+                    type="email"
+                    placeholder="vous@exemple.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     className="pl-10"
+                    required
                   />
                 </div>
               </div>
-            )}
 
-            <div>
-              <label className="text-sm font-medium mb-1.5 block">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-                <Input
-                  type="email"
-                  placeholder="vous@exemple.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
-                  required
-                />
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Mot de passe</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-10 pr-10"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                {!isLogin && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Minimum 6 caractères
+                  </p>
+                )}
               </div>
-            </div>
 
-            <div>
-              <label className="text-sm font-medium mb-1.5 block">Mot de passe</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 pr-10"
-                  required
-                />
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Chargement..." : isLogin ? "Se connecter" : "Créer mon compte"}
+              </Button>
+            </form>
+
+            <div className="mt-6 text-center">
+              <p className="text-sm text-muted-foreground">
+                {isLogin ? "Pas encore de compte ?" : "Déjà un compte ?"}
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  onClick={() => setIsLogin(!isLogin)}
+                  className="text-primary font-medium ml-1 hover:underline"
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {isLogin ? "S'inscrire" : "Se connecter"}
                 </button>
-              </div>
-              {!isLogin && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Minimum 6 caractères
-                </p>
-              )}
+              </p>
             </div>
+          </div>
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Chargement..." : isLogin ? "Se connecter" : "Créer mon compte"}
-            </Button>
-          </form>
+          <p className="text-center text-xs text-muted-foreground mt-6">
+            En continuant, vous acceptez nos conditions d'utilisation
+          </p>
+        </div>
+      </div>
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-muted-foreground">
-              {isLogin ? "Pas encore de compte ?" : "Déjà un compte ?"}
-              <button
-                type="button"
-                onClick={() => setIsLogin(!isLogin)}
-                className="text-primary font-medium ml-1 hover:underline"
+      {/* Right Side - Testimonials */}
+      <div className="hidden lg:flex lg:w-1/2 bg-primary/5 border-l border-border p-12 flex-col justify-center">
+        <div className="max-w-lg mx-auto">
+          {/* Stats */}
+          <div className="flex items-center gap-6 mb-8">
+            <div>
+              <p className="text-3xl font-bold text-primary">50K+</p>
+              <p className="text-sm text-muted-foreground">Contrats analysés</p>
+            </div>
+            <div className="w-px h-12 bg-border" />
+            <div>
+              <p className="text-3xl font-bold text-primary">98%</p>
+              <p className="text-sm text-muted-foreground">Satisfaction</p>
+            </div>
+            <div className="w-px h-12 bg-border" />
+            <div className="flex items-center gap-1">
+              <p className="text-3xl font-bold text-primary">4.9</p>
+              <Star className="text-warning fill-warning" size={24} />
+            </div>
+          </div>
+
+          {/* Testimonials */}
+          <div className="space-y-4 mb-8">
+            {testimonials.map((testimonial, index) => (
+              <div
+                key={index}
+                className="bg-card border border-border rounded-xl p-5"
               >
-                {isLogin ? "S'inscrire" : "Se connecter"}
-              </button>
+                <Quote className="text-primary/20 mb-2" size={20} />
+                <p className="text-sm text-muted-foreground mb-4">
+                  "{testimonial.text}"
+                </p>
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium text-xs">
+                    {testimonial.avatar}
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">{testimonial.name}</p>
+                    <p className="text-xs text-muted-foreground">{testimonial.role}</p>
+                  </div>
+                  <div className="ml-auto flex gap-0.5">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star key={i} size={12} className="text-warning fill-warning" />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Press Logos */}
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-3">
+              Ils parlent de nous
             </p>
+            <div className="flex items-center gap-6">
+              {pressLogos.map((logo) => (
+                <span
+                  key={logo}
+                  className="text-muted-foreground font-semibold text-sm opacity-60"
+                >
+                  {logo}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
-
-        <p className="text-center text-xs text-muted-foreground mt-6">
-          En continuant, vous acceptez nos conditions d'utilisation
-        </p>
       </div>
     </div>
   );

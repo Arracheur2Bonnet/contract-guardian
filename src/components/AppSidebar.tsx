@@ -5,8 +5,7 @@ import {
   Search, 
   Clock, 
   Settings, 
-  LogOut,
-  MessageSquare
+  LogOut
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import logoImage from "@/assets/logo.png";
@@ -18,7 +17,6 @@ const navItems = [
   { icon: Home, label: "Dashboard", path: "/" },
   { icon: Search, label: "Analyses", path: "/analyses" },
   { icon: Clock, label: "Historique", path: "/history" },
-  { icon: MessageSquare, label: "Recommandations", path: "/testimonials" },
   { icon: Settings, label: "Paramètres", path: "/settings" },
 ];
 
