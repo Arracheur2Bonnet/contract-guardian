@@ -44,7 +44,7 @@ serve(async (req) => {
   }
 
   try {
-    const { contractText, action, question, contractContext } = await req.json();
+    const { contractText, action, question, contractContext, redFlags } = await req.json();
     
     const FEATHERLESS_API_KEY = Deno.env.get("FEATHERLESS_API_KEY");
     if (!FEATHERLESS_API_KEY) {
@@ -102,22 +102,37 @@ Sois précis et cite les articles pertinents.`;
     // Handle negotiation advice action
     if (action === 'negotiate') {
       console.log("🤝 Processing negotiation advice...");
-      const { contractText: contractForNegotiation, redFlags } = await req.json().catch(() => ({}));
       
-      const negotiateSystemPrompt = `Tu es un expert en négociation de contrats. Ton rôle est de fournir des conseils pratiques et stratégiques pour renégocier les clauses problématiques d'un contrat.
-
-Pour chaque red flag identifié, tu dois proposer :
-1. Une reformulation alternative de la clause
-2. Les arguments à utiliser pour convaincre l'autre partie
-3. Le niveau de priorité de cette négociation
-
-Réponds de manière structurée et professionnelle en français.
-Utilise des puces et des sections claires.
-Sois concret et actionnable dans tes recommandations.`;
-
       const redFlagsContext = redFlags && redFlags.length > 0 
-        ? `\n\nProblèmes détectés dans le contrat :\n${redFlags.map((rf: any) => `- ${rf.titre} (${rf.gravite}): ${rf.description}`).join('\n')}`
-        : '';
+        ? redFlags.map((rf: any) => `• ${rf.titre} (Gravité: ${rf.gravite})\n  ${rf.description}${rf.citation ? `\n  Citation: "${rf.citation}"` : ''}`).join('\n\n')
+        : 'Aucun problème spécifique détecté.';
+
+      const negotiateSystemPrompt = `Tu es un expert en négociation de contrats avec 20 ans d'expérience. Tu aides les particuliers et professionnels à renégocier leurs contrats de manière efficace.
+
+Ton rôle est de fournir des conseils CONCRETS et ACTIONNABLES pour négocier les clauses problématiques.
+
+Structure ta réponse ainsi :
+
+## 📋 Résumé de la situation
+[Analyse rapide du rapport de force et de la marge de négociation]
+
+## 🎯 Clauses à négocier en priorité
+
+Pour chaque clause problématique :
+### [Nom de la clause]
+- **Ce qui pose problème** : [Explication simple]
+- **Ce qu'il faut demander** : [Formulation précise de la demande]
+- **Argument à utiliser** : [Argument persuasif basé sur le marché/la loi/la pratique]
+
+## ✉️ Modèle de message pour négocier
+
+[Propose un email/message type professionnel et diplomatique pour entamer la négociation]
+
+## 💡 Si la négociation échoue
+
+[Alternatives : refuser, demander des compensations, consulter un avocat, etc.]
+
+Sois diplomate mais ferme. Utilise un ton professionnel.`;
 
       const response = await fetch("https://api.featherless.ai/v1/chat/completions", {
         method: "POST",
@@ -129,10 +144,10 @@ Sois concret et actionnable dans tes recommandations.`;
           model: "Qwen/Qwen2.5-72B-Instruct",
           messages: [
             { role: "system", content: negotiateSystemPrompt },
-            { role: "user", content: `Voici le contrat à analyser pour la négociation :\n\n${contractForNegotiation || contractText}${redFlagsContext}\n\nDonne-moi des conseils concrets pour négocier les clauses problématiques.` }
+            { role: "user", content: `Voici le contrat à analyser :\n\n${contractContext || contractText}\n\n--- PROBLÈMES DÉTECTÉS ---\n\n${redFlagsContext}\n\nDonne-moi des conseils concrets pour négocier ces clauses problématiques.` }
           ],
           temperature: 0.4,
-          max_tokens: 2000,
+          max_tokens: 2500,
         }),
       });
 
@@ -155,25 +170,48 @@ Sois concret et actionnable dans tes recommandations.`;
     }
 
     // Handle legal expertise action
-    if (action === 'expertise') {
+    if (action === 'legal') {
       console.log("⚖️ Processing legal expertise...");
-      const { contractText: contractForExpertise, redFlags } = await req.json().catch(() => ({}));
       
-      const expertiseSystemPrompt = `Tu es un avocat expert en droit des contrats français. Ton rôle est de fournir une analyse juridique approfondie du contrat.
-
-Tu dois analyser :
-1. La conformité du contrat avec le droit français (Code civil, Code du travail si applicable)
-2. Les risques juridiques pour chaque partie
-3. La validité et l'applicabilité des clauses
-4. Les recours possibles en cas de litige
-
-Cite les articles de loi pertinents quand c'est possible.
-Réponds de manière structurée et professionnelle en français.
-Sois précis dans ton analyse juridique.`;
-
       const redFlagsContext = redFlags && redFlags.length > 0 
-        ? `\n\nProblèmes déjà identifiés :\n${redFlags.map((rf: any) => `- ${rf.titre} (${rf.gravite}): ${rf.description}`).join('\n')}`
-        : '';
+        ? redFlags.map((rf: any) => `• ${rf.titre} (Gravité: ${rf.gravite})\n  ${rf.description}${rf.article ? ` - ${rf.article}` : ''}`).join('\n\n')
+        : 'Aucun problème spécifique détecté.';
+
+      const legalSystemPrompt = `Tu es un avocat spécialisé en droit des contrats français avec 15 ans d'expérience au barreau de Paris. Tu fournis une expertise juridique rigoureuse et accessible.
+
+Structure ta réponse ainsi :
+
+## ⚖️ Analyse juridique
+
+Pour chaque clause problématique :
+### [Nom de la clause]
+- **Base légale** : [Articles du Code civil, Code du travail, jurisprudence applicable]
+- **Analyse** : [Conformité ou non-conformité avec le droit français]
+- **Risques** : [Conséquences juridiques et financières potentielles]
+
+## 🚨 Clauses potentiellement nulles
+
+[Liste des clauses qui pourraient être déclarées nulles par un tribunal, avec explication]
+
+## 🛡️ Vos droits
+
+[Ce que la loi vous garantit malgré les clauses du contrat - droits impératifs, ordre public]
+
+## 📊 Risques financiers estimés
+
+[Estimation des risques financiers en cas de litige ou d'application des clauses abusives]
+
+## ✅ Recommandation finale
+
+[ ] Contrat acceptable en l'état
+[ ] Modifications mineures recommandées
+[ ] Modifications majeures nécessaires - négociation indispensable
+[ ] Refus recommandé - risques trop importants
+[ ] Consultation d'un avocat fortement conseillée
+
+[Justification de la recommandation]
+
+Sois précis dans tes références légales (articles de loi, jurisprudence). Reste accessible pour un non-juriste.`;
 
       const response = await fetch("https://api.featherless.ai/v1/chat/completions", {
         method: "POST",
@@ -184,16 +222,16 @@ Sois précis dans ton analyse juridique.`;
         body: JSON.stringify({
           model: "Qwen/Qwen2.5-72B-Instruct",
           messages: [
-            { role: "system", content: expertiseSystemPrompt },
-            { role: "user", content: `Voici le contrat à analyser juridiquement :\n\n${contractForExpertise || contractText}${redFlagsContext}\n\nFournis-moi une expertise juridique complète de ce contrat.` }
+            { role: "system", content: legalSystemPrompt },
+            { role: "user", content: `Voici le contrat à analyser juridiquement :\n\n${contractContext || contractText}\n\n--- PROBLÈMES DÉTECTÉS ---\n\n${redFlagsContext}\n\nFournis-moi une expertise juridique complète de ce contrat.` }
           ],
           temperature: 0.3,
-          max_tokens: 2500,
+          max_tokens: 3000,
         }),
       });
 
       if (!response.ok) {
-        console.error("Featherless API error for expertise:", response.status);
+        console.error("Featherless API error for legal expertise:", response.status);
         return new Response(
           JSON.stringify({ expertise: "Désolé, une erreur s'est produite. Veuillez réessayer." }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
