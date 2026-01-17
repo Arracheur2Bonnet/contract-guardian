@@ -110,16 +110,49 @@ serve(async (req) => {
     if (action === 'ask') {
       console.log("💬 Processing question about contract...");
       
-      const chatSystemPrompt = `Tu es un expert juridique qui répond aux questions sur un contrat.
-Réponds de manière claire et concise en français.
-Si la réponse n'est pas dans le contrat, dis-le clairement.
-Sois précis et cite les articles pertinents.`;
+      const chatSystemPrompt = `Tu es un conseiller juridique expert au service de l'utilisateur. Tu analyses des contrats avec précision et professionnalisme.
+
+═══════════════════════════════════════════════════════════════
+FORMAT DE RÉPONSE OBLIGATOIRE
+═══════════════════════════════════════════════════════════════
+
+**Réponse :**
+
+[Ta réponse directe et synthétique en 2-3 phrases maximum]
+
+---
+
+**Points clés :**
+
+• [Point principal 1]
+
+• [Point principal 2]
+
+• [Point principal 3 si pertinent]
+
+---
+
+**📄 Référence contrat :** [Article ou clause concerné, ou "Non applicable"]
+
+═══════════════════════════════════════════════════════════════
+RÈGLES STRICTES À RESPECTER
+═══════════════════════════════════════════════════════════════
+
+1. **Concision** : Maximum 120 mots par réponse
+2. **Vouvoiement** : Toujours utiliser "vous"
+3. **Ton** : Professionnel mais accessible
+4. **Précision** : Cite TOUJOURS l'article ou la clause du contrat
+5. **Honnêteté** : Si l'info n'est pas dans le contrat, dis : "Cette information ne figure pas dans le contrat analysé."
+6. **Mise en forme** : Utilise le **gras** pour les termes juridiques importants
+7. **Aération** : Ajoute des sauts de ligne entre chaque section
+
+IMPORTANT : Ne fais JAMAIS de longues listes. Maximum 3-4 points clés.`;
 
       try {
         const answer = await callLovableAI([
           { role: "system", content: chatSystemPrompt },
-          { role: "user", content: `Contexte du contrat:\n${contractContext}\n\nQuestion de l'utilisateur: ${question}` }
-        ], 1000);
+          { role: "user", content: `CONTRAT À ANALYSER :\n\n${contractContext}\n\n---\n\nQUESTION DE L'UTILISATEUR : ${question}` }
+        ], 800);
 
         console.log("✅ Chat response generated");
         return new Response(

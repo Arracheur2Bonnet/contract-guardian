@@ -26,11 +26,11 @@ interface ChatAssistantProps {
 }
 
 const suggestedQuestions = [
-  "Quelles clauses puis-je négocier ?",
-  "Quels sont mes droits ?",
-  "Ce contrat est-il légal ?",
-  "Quels sont les risques ?",
-  "Comment me protéger ?"
+  "Quels sont les délais de préavis ?",
+  "La clause de résiliation est-elle équilibrée ?",
+  "Quelles sont mes obligations principales ?",
+  "Y a-t-il des pénalités prévues ?",
+  "Quels points dois-je négocier ?"
 ];
 
 const ChatAssistant = ({ contractText }: ChatAssistantProps) => {
@@ -177,7 +177,7 @@ const ChatAssistant = ({ contractText }: ChatAssistantProps) => {
                     }`}
                   >
                     {message.role === "assistant" ? (
-                      <div className="text-sm prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-headings:my-2 prose-headings:font-semibold">
+                      <div className="text-sm prose prose-sm dark:prose-invert max-w-none prose-p:my-3 prose-p:leading-relaxed prose-ul:my-3 prose-ul:space-y-2 prose-ol:my-3 prose-li:my-1 prose-headings:my-4 prose-headings:font-semibold prose-hr:my-3 prose-hr:border-border/30 prose-strong:text-primary prose-strong:font-semibold">
                         <ReactMarkdown>{message.content}</ReactMarkdown>
                       </div>
                     ) : (
