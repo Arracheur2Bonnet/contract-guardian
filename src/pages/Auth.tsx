@@ -241,23 +241,6 @@ const Auth = () => {
       {/* Right Side - Testimonials */}
       <div className="hidden lg:flex lg:w-1/2 bg-primary/5 border-l border-border p-12 flex-col justify-center">
         <div className="max-w-lg mx-auto">
-          {/* Stats */}
-          <div className="flex items-center gap-6 mb-8">
-            <div>
-              <p className="text-3xl font-bold text-primary">50K+</p>
-              <p className="text-sm text-muted-foreground">Contrats analysés</p>
-            </div>
-            <div className="w-px h-12 bg-border" />
-            <div>
-              <p className="text-3xl font-bold text-primary">98%</p>
-              <p className="text-sm text-muted-foreground">Satisfaction</p>
-            </div>
-            <div className="w-px h-12 bg-border" />
-            <div className="flex items-center gap-1">
-              <p className="text-3xl font-bold text-primary">4.9</p>
-              <Star className="text-warning fill-warning" size={24} />
-            </div>
-          </div>
 
           {/* Testimonials */}
           <div className="space-y-4 mb-8">
