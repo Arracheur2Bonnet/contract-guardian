@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import Layout from "@/components/Layout";
+import DashboardLayout from "@/components/DashboardLayout";
 import RiskScore from "@/components/RiskScore";
 import RedFlagCard from "@/components/RedFlagCard";
 import StandardClauseCard from "@/components/StandardClauseCard";
@@ -240,9 +240,8 @@ const Results = () => {
   const moderateCount = result.redFlags.filter((f) => f.gravite === "modérée").length;
 
   return (
-    <Layout>
-      <div className="container mx-auto px-4 py-12">
-        <div className="max-w-4xl mx-auto">
+    <DashboardLayout title="Résultats de l'analyse" subtitle="Analyse complète de votre contrat">
+      <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
             <div>
@@ -504,11 +503,10 @@ const Results = () => {
             </Link>
           </div>
         </div>
-      </div>
       {contractText && (
         <ChatAssistant contractText={contractText} />
       )}
-    </Layout>
+    </DashboardLayout>
   );
 };
 

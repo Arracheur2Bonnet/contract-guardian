@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import Layout from "@/components/Layout";
+import { useNavigate, useLocation } from "react-router-dom";
+import DashboardLayout from "@/components/DashboardLayout";
 import FileUpload from "@/components/FileUpload";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -40,6 +40,7 @@ async function extractTextFromPDF(file: File): Promise<string> {
 }
 
 const Analyze = () => {
+  const location = useLocation();
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -47,6 +48,13 @@ const Analyze = () => {
   const [progressMessage, setProgressMessage] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Handle file from navigation state (from dashboard drag & drop)
+  useEffect(() => {
+    if (location.state?.file) {
+      setFile(location.state.file);
+    }
+  }, [location.state]);
 
   // Simulate progress during analysis
   useEffect(() => {
@@ -125,79 +133,70 @@ const Analyze = () => {
   };
 
   return (
-    <Layout>
-      <div className="container mx-auto px-4 py-12">
-        <div className="max-w-2xl mx-auto">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold mb-2">Analyser un contrat</h1>
-            <p className="text-muted-foreground">
-              Uploadez votre contrat PDF pour obtenir une analyse détaillée
-            </p>
-          </div>
+    <DashboardLayout title="Analyser un contrat" subtitle="Uploadez votre contrat PDF pour obtenir une analyse détaillée">
+      <div className="max-w-2xl mx-auto">
+        <div className="bg-card border border-border rounded-xl p-6 md:p-8 shadow-sm">
+          <FileUpload
+            onFileSelect={handleFileSelect}
+            file={file}
+            error={error}
+          />
 
-          <div className="bg-card border border-border rounded-lg p-6 md:p-8 shadow-sm">
-            <FileUpload
-              onFileSelect={handleFileSelect}
-              file={file}
-              error={error}
-            />
-
-            <div className="mt-6">
-              <p className="text-sm font-medium mb-3">Types de contrats supportés :</p>
-              <div className="flex flex-wrap gap-2">
-                {contractTypes.map((type) => (
-                  <div
-                    key={type.name}
-                    className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted px-3 py-1.5 rounded-full"
-                  >
-                    <type.icon size={12} />
-                    <span>{type.name}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="mt-8">
-              <Button
-                onClick={handleAnalyze}
-                disabled={!file || isAnalyzing}
-                className="w-full h-12"
-                size="lg"
-              >
-                {isAnalyzing ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Analyse en cours...
-                  </>
-                ) : (
-                  "Analyser le contrat"
-                )}
-              </Button>
-
-              {isAnalyzing && (
-                <div className="mt-6 space-y-3">
-                  <Progress value={progress} className="h-2" />
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">{progressMessage}</span>
-                    <span className="font-medium text-primary">{progress}%</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground text-center">
-                    L'analyse peut prendre 20-40 secondes selon la taille du contrat
-                  </p>
+          <div className="mt-6">
+            <p className="text-sm font-medium mb-3">Types de contrats supportés :</p>
+            <div className="flex flex-wrap gap-2">
+              {contractTypes.map((type) => (
+                <div
+                  key={type.name}
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted px-3 py-1.5 rounded-full"
+                >
+                  <type.icon size={12} />
+                  <span>{type.name}</span>
                 </div>
-              )}
+              ))}
             </div>
           </div>
 
-          <div className="mt-6 flex items-start gap-2 text-sm text-muted-foreground bg-muted/50 p-4 rounded-lg">
-            <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
-            <p>
-              Cet outil est fourni à titre informatif uniquement et ne remplace pas les conseils d'un avocat qualifié.
-            </p>
+          <div className="mt-8">
+            <Button
+              onClick={handleAnalyze}
+              disabled={!file || isAnalyzing}
+              className="w-full h-12"
+              size="lg"
+            >
+              {isAnalyzing ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Analyse en cours...
+                </>
+              ) : (
+                "Analyser le contrat"
+              )}
+            </Button>
+
+            {isAnalyzing && (
+              <div className="mt-6 space-y-3">
+                <Progress value={progress} className="h-2" />
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">{progressMessage}</span>
+                  <span className="font-medium text-primary">{progress}%</span>
+                </div>
+                <p className="text-xs text-muted-foreground text-center">
+                  L'analyse peut prendre 20-40 secondes selon la taille du contrat
+                </p>
+              </div>
+            )}
           </div>
         </div>
+
+        <div className="mt-6 flex items-start gap-2 text-sm text-muted-foreground bg-muted/50 p-4 rounded-lg">
+          <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
+          <p>
+            Cet outil est fourni à titre informatif uniquement et ne remplace pas les conseils d'un avocat qualifié.
+          </p>
+        </div>
       </div>
-    </Layout>
+    </DashboardLayout>
   );
 };
 
