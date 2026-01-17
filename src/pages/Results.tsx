@@ -506,10 +506,7 @@ const Results = () => {
         </div>
       </div>
       {contractText && (
-        <ChatAssistant 
-          contractText={contractText} 
-          redFlags={result.redFlags}
-        />
+        <ChatAssistant contractText={contractText} />
       )}
     </Layout>
   );
