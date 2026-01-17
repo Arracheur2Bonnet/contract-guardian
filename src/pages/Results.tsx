@@ -4,20 +4,28 @@ import Layout from "@/components/Layout";
 import RiskScore from "@/components/RiskScore";
 import RedFlagCard from "@/components/RedFlagCard";
 import StandardClauseCard from "@/components/StandardClauseCard";
+import ChatAssistant from "@/components/ChatAssistant";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, FileText, ArrowLeft, Download } from "lucide-react";
 import { AnalysisResult } from "@/types/analysis";
 
 const Results = () => {
   const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [contractText, setContractText] = useState<string>("");
   const navigate = useNavigate();
 
   useEffect(() => {
     const stored = sessionStorage.getItem("analysisResult");
+    const storedText = sessionStorage.getItem("contractText");
+    
     if (stored) {
       setResult(JSON.parse(stored));
     } else {
       navigate("/analyze");
+    }
+    
+    if (storedText) {
+      setContractText(storedText);
     }
   }, [navigate]);
 
@@ -132,6 +140,12 @@ const Results = () => {
           </div>
         </div>
       </div>
+      {contractText && (
+        <ChatAssistant 
+          contractText={contractText} 
+          redFlags={result.redFlags}
+        />
+      )}
     </Layout>
   );
 };
