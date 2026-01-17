@@ -80,13 +80,30 @@ const ChatAssistant = ({ contractText }: ChatAssistantProps) => {
 
   if (!isOpen) {
     return (
-      <Button
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 h-16 w-16 rounded-2xl shadow-xl z-50 gradient-primary border-0 hover:scale-110 transition-all duration-300"
-        size="icon"
-      >
-        <MessageCircle className="h-7 w-7" />
-      </Button>
+      <div className="fixed bottom-6 right-6 z-50">
+        {/* Pulse animation ring */}
+        <div className="absolute inset-0 rounded-2xl gradient-primary animate-ping opacity-30" />
+        <div className="absolute -inset-1 rounded-2xl gradient-primary opacity-20 blur-md" />
+        
+        <Button
+          onClick={() => setIsOpen(true)}
+          className="relative h-16 w-16 rounded-2xl shadow-2xl gradient-primary border-0 hover:scale-110 transition-all duration-300 group"
+          size="icon"
+        >
+          <MessageCircle className="h-7 w-7 group-hover:scale-110 transition-transform" />
+          
+          {/* Badge notification */}
+          <span className="absolute -top-1 -right-1 h-5 w-5 bg-destructive rounded-full flex items-center justify-center text-[10px] font-bold text-white animate-bounce">
+            ?
+          </span>
+        </Button>
+        
+        {/* Floating label */}
+        <div className="absolute -left-28 top-1/2 -translate-y-1/2 bg-card border border-border/50 rounded-xl px-3 py-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+          <p className="text-xs font-medium text-foreground whitespace-nowrap">Posez vos questions</p>
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1 w-2 h-2 bg-card border-r border-t border-border/50 rotate-45" />
+        </div>
+      </div>
     );
   }
 
