@@ -24,10 +24,10 @@ export const PLANS = {
   },
   standard: {
     name: 'Standard',
-    price: 9.99,
-    credits: 10,
+    price: 11.99,
+    credits: 50,
     features: [
-      '10 analyses de contrats',
+      '50 analyses par mois',
       'Tout le plan Gratuit',
       'Assistant IA illimité',
       'Export PDF des analyses',
@@ -129,7 +129,7 @@ export async function canUseCredit(userId: string): Promise<boolean> {
 }
 
 export async function upgradePlan(userId: string, newPlan: 'free' | 'standard' | 'premium'): Promise<boolean> {
-  const newLimit = newPlan === 'free' ? 3 : newPlan === 'standard' ? 10 : -1;
+  const newLimit = newPlan === 'free' ? 3 : newPlan === 'standard' ? 50 : -1;
   
   const { error } = await supabase
     .from('user_credits')
