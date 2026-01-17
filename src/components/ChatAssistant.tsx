@@ -10,13 +10,10 @@ import {
   X, 
   Loader2, 
   Scale, 
-  Lightbulb, 
-  HelpCircle,
   ChevronUp,
   ChevronDown
 } from "lucide-react";
-import { askQuestion, getNegotiationAdvice, getLegalExpertise } from "@/services/featherlessApi";
-import { RedFlag } from "@/types/analysis";
+import { askQuestion } from "@/services/featherlessApi";
 
 interface Message {
   role: "user" | "assistant";
@@ -25,31 +22,22 @@ interface Message {
 
 interface ChatAssistantProps {
   contractText: string;
-  redFlags?: RedFlag[];
-}
-
-type TabType = "questions" | "negocier" | "expertise";
-
-interface TabCache {
-  negocier: Message[] | null;
-  expertise: Message[] | null;
 }
 
 const suggestedQuestions = [
   "Quelles clauses puis-je négocier ?",
   "Quels sont mes droits ?",
-  "Ce contrat est-il légal ?"
+  "Ce contrat est-il légal ?",
+  "Quels sont les risques de ce contrat ?",
+  "Comment puis-je me protéger ?"
 ];
 
-const ChatAssistant = ({ contractText, redFlags = [] }: ChatAssistantProps) => {
+const ChatAssistant = ({ contractText }: ChatAssistantProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabType>("questions");
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [questionsMessages, setQuestionsMessages] = useState<Message[]>([]);
-  const [tabCache, setTabCache] = useState<TabCache>({ negocier: null, expertise: null });
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -62,8 +50,7 @@ const ChatAssistant = ({ contractText, redFlags = [] }: ChatAssistantProps) => {
     if (!message.trim() || isLoading) return;
 
     const userMessage: Message = { role: "user", content: message };
-    const newMessages = [...questionsMessages, userMessage];
-    setQuestionsMessages(newMessages);
+    const newMessages = [...messages, userMessage];
     setMessages(newMessages);
     setInputValue("");
     setIsLoading(true);
@@ -71,80 +58,15 @@ const ChatAssistant = ({ contractText, redFlags = [] }: ChatAssistantProps) => {
     try {
       const response = await askQuestion(message, contractText);
       const assistantMessage: Message = { role: "assistant", content: response };
-      const updatedMessages = [...newMessages, assistantMessage];
-      setQuestionsMessages(updatedMessages);
-      setMessages(updatedMessages);
+      setMessages([...newMessages, assistantMessage]);
     } catch (error) {
       const errorMessage: Message = { 
         role: "assistant", 
         content: "Désolé, une erreur s'est produite. Veuillez réessayer." 
       };
-      const updatedMessages = [...newMessages, errorMessage];
-      setQuestionsMessages(updatedMessages);
-      setMessages(updatedMessages);
+      setMessages([...newMessages, errorMessage]);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleTabChange = async (tab: TabType) => {
-    if (tab === activeTab) return;
-    
-    setActiveTab(tab);
-    
-    if (tab === "questions") {
-      setMessages(questionsMessages);
-      return;
-    }
-    
-    // Check cache first
-    if (tab === "negocier" && tabCache.negocier) {
-      setMessages(tabCache.negocier);
-      return;
-    }
-    
-    if (tab === "expertise" && tabCache.expertise) {
-      setMessages(tabCache.expertise);
-      return;
-    }
-    
-    // Fetch data if not cached
-    if (tab === "negocier") {
-      setIsLoading(true);
-      setMessages([]);
-      try {
-        const response = await getNegotiationAdvice(contractText, redFlags);
-        const assistantMessage: Message = { role: "assistant", content: response };
-        const newMessages = [assistantMessage];
-        setMessages(newMessages);
-        setTabCache(prev => ({ ...prev, negocier: newMessages }));
-      } catch (error) {
-        const errorMessage: Message = { 
-          role: "assistant", 
-          content: "Désolé, une erreur s'est produite lors de l'analyse de négociation." 
-        };
-        setMessages([errorMessage]);
-      } finally {
-        setIsLoading(false);
-      }
-    } else if (tab === "expertise") {
-      setIsLoading(true);
-      setMessages([]);
-      try {
-        const response = await getLegalExpertise(contractText, redFlags);
-        const assistantMessage: Message = { role: "assistant", content: response };
-        const newMessages = [assistantMessage];
-        setMessages(newMessages);
-        setTabCache(prev => ({ ...prev, expertise: newMessages }));
-      } catch (error) {
-        const errorMessage: Message = { 
-          role: "assistant", 
-          content: "Désolé, une erreur s'est produite lors de l'expertise juridique." 
-        };
-        setMessages([errorMessage]);
-      } finally {
-        setIsLoading(false);
-      }
     }
   };
 
@@ -199,49 +121,12 @@ const ChatAssistant = ({ contractText, redFlags = [] }: ChatAssistantProps) => {
 
       {!isMinimized && (
         <>
-          {/* Tabs */}
-          <div className="flex border-b">
-            <button
-              onClick={() => handleTabChange("questions")}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 text-sm font-medium transition-colors ${
-                activeTab === "questions"
-                  ? "border-b-2 border-primary text-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <HelpCircle className="h-4 w-4" />
-              Questions
-            </button>
-            <button
-              onClick={() => handleTabChange("negocier")}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 text-sm font-medium transition-colors ${
-                activeTab === "negocier"
-                  ? "border-b-2 border-primary text-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Lightbulb className="h-4 w-4" />
-              Négocier
-            </button>
-            <button
-              onClick={() => handleTabChange("expertise")}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 text-sm font-medium transition-colors ${
-                activeTab === "expertise"
-                  ? "border-b-2 border-primary text-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Scale className="h-4 w-4" />
-              Expertise
-            </button>
-          </div>
-
           {/* Messages */}
           <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-            {messages.length === 0 && activeTab === "questions" && !isLoading && (
+            {messages.length === 0 && !isLoading && (
               <div className="space-y-3">
                 <p className="text-sm text-muted-foreground text-center mb-4">
-                  Questions suggérées :
+                  Posez vos questions sur le contrat :
                 </p>
                 {suggestedQuestions.map((question, index) => (
                   <Button
@@ -296,31 +181,29 @@ const ChatAssistant = ({ contractText, redFlags = [] }: ChatAssistantProps) => {
           </ScrollArea>
 
           {/* Input */}
-          {activeTab === "questions" && (
-            <div className="p-4 border-t">
-              <div className="flex gap-2">
-                <Input
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Posez votre question..."
-                  disabled={isLoading}
-                  className="flex-1"
-                />
-                <Button
-                  onClick={() => handleSendMessage(inputValue)}
-                  disabled={isLoading || !inputValue.trim()}
-                  size="icon"
-                >
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
+          <div className="p-4 border-t">
+            <div className="flex gap-2">
+              <Input
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Posez votre question..."
+                disabled={isLoading}
+                className="flex-1"
+              />
+              <Button
+                onClick={() => handleSendMessage(inputValue)}
+                disabled={isLoading || !inputValue.trim()}
+                size="icon"
+              >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+              </Button>
             </div>
-          )}
+          </div>
         </>
       )}
     </Card>
