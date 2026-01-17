@@ -8,32 +8,30 @@ import {
   Bell, 
   Shield, 
   Palette, 
-  Key, 
   HelpCircle,
   Camera,
-  Eye,
-  EyeOff,
-  Copy,
   ExternalLink,
-  Check
+  Check,
+  Sun,
+  Moon,
+  Monitor
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { useTheme } from "@/hooks/useTheme";
 
 const sections = [
   { id: "profile", label: "Profil", icon: User },
   { id: "notifications", label: "Notifications", icon: Bell },
   { id: "security", label: "Sécurité", icon: Shield },
   { id: "appearance", label: "Apparence", icon: Palette },
-  { id: "api", label: "API", icon: Key },
   { id: "help", label: "Aide", icon: HelpCircle },
 ];
 
 const themes = [
-  { id: "light", label: "Clair" },
-  { id: "dark", label: "Sombre" },
-  { id: "system", label: "Système" },
-];
+  { id: "light", label: "Clair", icon: Sun },
+  { id: "dark", label: "Sombre", icon: Moon },
+  { id: "system", label: "Système", icon: Monitor },
+] as const;
 
 const helpLinks = [
   { label: "Documentation", href: "#" },
@@ -44,8 +42,7 @@ const helpLinks = [
 
 const Settings = () => {
   const [activeSection, setActiveSection] = useState("profile");
-  const [showApiKey, setShowApiKey] = useState(false);
-  const [selectedTheme, setSelectedTheme] = useState("light");
+  const { theme, setTheme } = useTheme();
   const [notifications, setNotifications] = useState({
     email: true,
     push: false,
@@ -53,13 +50,6 @@ const Settings = () => {
     weeklyReport: false,
     riskAlerts: true,
   });
-  
-  const apiKey = "sk_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxx";
-
-  const copyApiKey = () => {
-    navigator.clipboard.writeText(apiKey);
-    toast.success("Clé API copiée !");
-  };
 
   return (
     <DashboardLayout title="Paramètres" subtitle="Gérez vos préférences">
@@ -193,66 +183,44 @@ const Settings = () => {
           {activeSection === "appearance" && (
             <div className="bg-card border border-border rounded-xl p-6 space-y-6">
               <h2 className="text-lg font-semibold">Apparence</h2>
+              <p className="text-sm text-muted-foreground">
+                Personnalisez l'apparence de l'application
+              </p>
 
               <div className="grid grid-cols-3 gap-4">
-                {themes.map((theme) => (
+                {themes.map((t) => (
                   <button
-                    key={theme.id}
-                    onClick={() => setSelectedTheme(theme.id)}
+                    key={t.id}
+                    onClick={() => setTheme(t.id)}
                     className={cn(
                       "p-4 rounded-xl border-2 transition-all",
-                      selectedTheme === theme.id
-                        ? "border-primary"
-                        : "border-border hover:border-border/80"
+                      theme === t.id
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/50"
                     )}
                   >
                     <div className={cn(
-                      "w-full h-16 rounded-lg mb-3",
-                      theme.id === "light" ? "bg-white border border-border" :
-                      theme.id === "dark" ? "bg-gray-900" :
-                      "bg-gradient-to-br from-white to-gray-900"
-                    )} />
+                      "w-full h-16 rounded-lg mb-3 flex items-center justify-center",
+                      t.id === "light" ? "bg-white border border-border" :
+                      t.id === "dark" ? "bg-slate-900" :
+                      "bg-gradient-to-br from-white to-slate-900"
+                    )}>
+                      <t.icon className={cn(
+                        "w-6 h-6",
+                        t.id === "light" ? "text-amber-500" :
+                        t.id === "dark" ? "text-blue-400" :
+                        "text-slate-500"
+                      )} />
+                    </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">{theme.label}</span>
-                      {selectedTheme === theme.id && (
+                      <span className="text-sm font-medium">{t.label}</span>
+                      {theme === t.id && (
                         <Check size={16} className="text-primary" />
                       )}
                     </div>
                   </button>
                 ))}
               </div>
-            </div>
-          )}
-
-          {/* API Section */}
-          {activeSection === "api" && (
-            <div className="bg-card border border-border rounded-xl p-6 space-y-6">
-              <h2 className="text-lg font-semibold">Clé API</h2>
-
-              <div>
-                <label className="text-sm font-medium mb-1.5 block">Votre clé API</label>
-                <div className="flex gap-2">
-                  <div className="flex-1 relative">
-                    <Input
-                      type={showApiKey ? "text" : "password"}
-                      value={apiKey}
-                      readOnly
-                      className="pr-10 font-mono text-sm"
-                    />
-                    <button
-                      onClick={() => setShowApiKey(!showApiKey)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                  <Button variant="outline" size="icon" onClick={copyApiKey}>
-                    <Copy size={16} />
-                  </Button>
-                </div>
-              </div>
-
-              <Button variant="outline">Générer une nouvelle clé</Button>
             </div>
           )}
 
