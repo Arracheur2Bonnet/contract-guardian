@@ -1,16 +1,17 @@
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { 
   Home, 
   Search, 
   Clock, 
   Settings, 
-  ChevronLeft, 
-  ChevronRight
+  LogOut
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import logoImage from "@/assets/logo.png";
 import { getRecentContracts, ContractAnalysis } from "@/services/contractService";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const navItems = [
   { icon: Home, label: "Dashboard", path: "/" },
@@ -26,26 +27,44 @@ const getScoreColor = (score: number) => {
 };
 
 const AppSidebar = () => {
-  const [collapsed, setCollapsed] = useState(false);
   const [recentContracts, setRecentContracts] = useState<ContractAnalysis[]>([]);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userInitials, setUserInitials] = useState("U");
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchRecent = async () => {
       const contracts = await getRecentContracts(5);
-      setRecentContracts(contracts.filter(c => c.status === 'analyzed'));
+      setRecentContracts(contracts.filter(c => c.status === 'completed'));
+    };
+
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserEmail(user.email || null);
+        const name = user.user_metadata?.full_name || user.email || "User";
+        const initials = name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
+        setUserInitials(initials);
+      }
     };
 
     fetchRecent();
-  }, [location.pathname]); // Refresh when navigating
+    fetchUser();
+  }, [location.pathname]);
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error("Erreur lors de la déconnexion");
+    } else {
+      toast.success("Déconnexion réussie");
+      navigate("/auth");
+    }
+  };
 
   return (
-    <aside 
-      className={cn(
-        "fixed left-0 top-0 h-screen bg-card border-r border-border flex flex-col transition-all duration-300 z-40",
-        collapsed ? "w-16" : "w-[260px]"
-      )}
-    >
+    <aside className="fixed left-0 top-0 h-screen w-[260px] bg-card border-r border-border flex flex-col z-40">
       {/* Logo */}
       <div className="p-4 border-b border-border flex items-center gap-3">
         <img 
@@ -53,11 +72,9 @@ const AppSidebar = () => {
           alt="Contr'Act" 
           className="w-7 h-7 flex-shrink-0"
         />
-        {!collapsed && (
-          <span className="font-semibold text-base text-primary">
-            Contr'Act
-          </span>
-        )}
+        <span className="font-semibold text-base text-primary">
+          Contr'Act
+        </span>
       </div>
 
       {/* Navigation */}
@@ -78,13 +95,13 @@ const AppSidebar = () => {
               )}
             >
               <item.icon size={18} className="flex-shrink-0" />
-              {!collapsed && <span className="text-sm font-medium">{item.label}</span>}
+              <span className="text-sm font-medium">{item.label}</span>
             </Link>
           );
         })}
 
         {/* Recent Contracts Section */}
-        {!collapsed && recentContracts.length > 0 && (
+        {recentContracts.length > 0 && (
           <div className="mt-6 pt-4 border-t border-border">
             <p className="px-3 text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-2">
               Contrats récents
@@ -105,26 +122,24 @@ const AppSidebar = () => {
         )}
       </nav>
 
-      {/* Toggle Button */}
-      <button
-        onClick={() => setCollapsed(!collapsed)}
-        className="absolute -right-3 top-20 bg-card border border-border rounded-full p-1.5 shadow-sm hover:bg-muted transition-colors"
-      >
-        {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
-      </button>
-
       {/* User Section */}
       <div className="p-3 border-t border-border">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium text-xs flex-shrink-0">
-            TD
-          </div>
-          {!collapsed && (
-            <div className="overflow-hidden">
-              <p className="font-medium text-xs truncate">Thomas Dubois</p>
-              <p className="text-[10px] text-muted-foreground truncate">thomas@example.com</p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium text-xs flex-shrink-0">
+              {userInitials}
             </div>
-          )}
+            <div className="overflow-hidden">
+              <p className="font-medium text-xs truncate">{userEmail || "Utilisateur"}</p>
+            </div>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="p-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            title="Se déconnecter"
+          >
+            <LogOut size={16} />
+          </button>
         </div>
       </div>
     </aside>
