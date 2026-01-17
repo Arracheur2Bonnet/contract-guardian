@@ -1,5 +1,8 @@
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Home } from "lucide-react";
+import logoImage from "@/assets/logo.png";
 
 const NotFound = () => {
   const location = useLocation();
@@ -9,13 +12,22 @@ const NotFound = () => {
   }, [location.pathname]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">404</h1>
-        <p className="mb-4 text-xl text-muted-foreground">Oops! Page not found</p>
-        <a href="/" className="text-primary underline hover:text-primary/90">
-          Return to Home
-        </a>
+        <img src={logoImage} alt="Contr'Act" className="w-16 h-16 mx-auto mb-6" />
+        <h1 className="text-8xl font-bold text-primary mb-4">404</h1>
+        <p className="text-xl text-muted-foreground mb-4">
+          Page non trouvée
+        </p>
+        <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+          Désolé, la page que vous recherchez n'existe pas ou a été déplacée.
+        </p>
+        <Link to="/">
+          <Button className="gap-2">
+            <Home size={16} />
+            Retour à l'accueil
+          </Button>
+        </Link>
       </div>
     </div>
   );
