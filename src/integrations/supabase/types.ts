@@ -14,7 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      contract_analyses: {
+        Row: {
+          contract_text: string
+          contract_type: string | null
+          created_at: string
+          id: string
+          name: string
+          red_flags: Json | null
+          resume: string | null
+          risk_score: number
+          standard_clauses: Json | null
+          status: string
+          updated_at: string
+          verdict: string
+        }
+        Insert: {
+          contract_text: string
+          contract_type?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          red_flags?: Json | null
+          resume?: string | null
+          risk_score?: number
+          standard_clauses?: Json | null
+          status?: string
+          updated_at?: string
+          verdict?: string
+        }
+        Update: {
+          contract_text?: string
+          contract_type?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          red_flags?: Json | null
+          resume?: string | null
+          risk_score?: number
+          standard_clauses?: Json | null
+          status?: string
+          updated_at?: string
+          verdict?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
