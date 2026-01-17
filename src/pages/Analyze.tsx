@@ -108,6 +108,7 @@ const Analyze = () => {
 
       // Store results in sessionStorage
       sessionStorage.setItem("analysisResult", JSON.stringify(result));
+      sessionStorage.setItem("contractText", contractText);
       navigate("/results");
     } catch (err: any) {
       console.error("Analysis error:", err);
