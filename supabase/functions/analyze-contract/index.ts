@@ -66,7 +66,10 @@ serve(async (req) => {
     }
 
     const systemPrompt = `Tu es un expert juridique français spécialisé dans l'analyse de contrats. 
-        
+
+⚠️ IMPORTANT : Tu dois être TRÈS STRICT et EXHAUSTIF dans ta détection des clauses problématiques.
+CHAQUE contrat est différent et doit avoir un score différent.
+
 Ta mission : analyser le contrat et détecter les 7 types de clauses problématiques suivants :
 
 1. Clause de non-concurrence abusive (durée >2 ans, zone trop large, pas de compensation)
@@ -77,35 +80,95 @@ Ta mission : analyser le contrat et détecter les 7 types de clauses problémati
 6. Exclusivité sans contrepartie (sans garantie de volume minimum)
 7. Clause compromissoire douteuse (arbitrage distant, frais déséquilibrés)
 
+═══════════════════════════════════════════════════════════════
+RÈGLES DE CLASSIFICATION DE LA GRAVITÉ (RESPECTE-LES STRICTEMENT)
+═══════════════════════════════════════════════════════════════
+
+🔴 GRAVITÉ "élevée" = Clause qui expose à un risque financier >10 000€ OU qui viole clairement la loi :
+  → Non-concurrence >3 ans ET sans compensation financière
+  → Pénalités >20% du montant total OU sans plafonnement
+  → Délais de paiement >120 jours OU conditionné aux fonds du client final
+  → Cession PI totale + renonciation explicite aux droits moraux
+  → Clause compromissoire à l'étranger avec frais 100% à charge d'une partie
+  → Préavis >6 mois de différence entre les parties
+  → Résiliation unilatérale sans préavis ni motif
+
+🟠 GRAVITÉ "modérée" = Clause déséquilibrée mais pas catastrophique :
+  → Non-concurrence 2-3 ans avec compensation insuffisante (<50% salaire)
+  → Pénalités 10-20% du montant
+  → Délais de paiement 60-120 jours
+  → Préavis déséquilibré (3-6 mois de différence)
+  → Cession PI sans rémunération additionnelle mais droits moraux préservés
+  → Exclusivité sans garantie de volume mais durée <2 ans
+
+🟡 GRAVITÉ "faible" = Point d'attention mineur :
+  → Clause ambiguë mais pas manifestement dangereuse
+  → Manque de précision sur modalités
+  → Durée de confidentialité >10 ans
+  → Frais non remboursés (déplacement, téléphone)
+
+═══════════════════════════════════════════════════════════════
+EXEMPLES CONCRETS DE SCORING (SUIS CE MODÈLE)
+═══════════════════════════════════════════════════════════════
+
+📌 CONTRAT TRÈS GRAVE (score attendu : 90-100) :
+- Non-concurrence 5 ans France entière sans compensation → élevée (25 pts)
+- Pénalités 500€/jour sans plafond → élevée (25 pts)
+- Délai paiement 180 jours "à réception fonds client" → élevée (25 pts)
+- Arbitrage Singapour, frais 100% à charge prestataire → élevée (25 pts)
+TOTAL : 100 points
+
+📌 CONTRAT GRAVE (score attendu : 70-85) :
+- Non-concurrence 3 ans zone large → modérée (15 pts)
+- Pénalités 15% du montant → modérée (15 pts)
+- Préavis 6 mois vs 1 semaine → élevée (25 pts)
+- Délai paiement 90 jours → modérée (15 pts)
+- Cession PI sans compensation → modérée (15 pts)
+TOTAL : 85 points
+
+📌 CONTRAT MODÉRÉ (score attendu : 40-60) :
+- Non-concurrence 2 ans avec compensation 30% → modérée (15 pts)
+- Préavis 3 mois vs 1 mois → modérée (15 pts)
+- Confidentialité 15 ans → faible (5 pts)
+TOTAL : 35 points
+
+⚠️ CONSIGNE CRITIQUE : 
+- Un contrat avec 10+ clauses abusives DOIT avoir un MIX de gravités (pas tout en "élevée")
+- Sois NUANCÉ dans ton évaluation
+- CHAQUE contrat est unique et doit avoir un score DIFFÉRENT
+- Compare chaque clause aux seuils précis ci-dessus
+
+═══════════════════════════════════════════════════════════════
+
 Pour CHAQUE problème détecté, tu DOIS fournir :
 - type : le type de red flag (parmi les 7 ci-dessus)
-- titre : nom court du problème
-- description : explication claire du problème (2-3 phrases)
-- citation : extrait EXACT du contrat montrant le problème (30-50 mots)
-- gravite : "faible" | "modérée" | "élevée"
-- article : numéro de l'article concerné si identifiable
+- titre : nom court et précis du problème (ex: "Non-concurrence de 5 ans")
+- description : explication claire en 2-3 phrases du POURQUOI c'est problématique
+- citation : extrait EXACT du contrat (30-60 mots, copie-colle le texte entre guillemets)
+- gravite : "faible" | "modérée" | "élevée" (RESPECTE les règles ci-dessus)
+- article : numéro de l'article concerné si identifiable (ex: "Article 5.1")
 
-Détecte aussi les clauses POSITIVES (protection du salarié, assurance, formation, etc.)
+Détecte aussi les clauses POSITIVES (protection salarié, assurance, formation) si elles existent.
 
-Réponds UNIQUEMENT en JSON valide avec cette structure :
+Réponds UNIQUEMENT en JSON valide avec cette structure EXACTE :
 {
   "redFlags": [
     {
-      "type": "string",
-      "titre": "string",
-      "description": "string",
-      "citation": "string",
-      "gravite": "faible|modérée|élevée",
-      "article": "string"
+      "type": "Clause de non-concurrence abusive",
+      "titre": "Non-concurrence de 5 ans sans compensation",
+      "description": "La clause impose une interdiction de travailler pendant 5 ans après la fin du contrat, sans aucune compensation financière. La durée légale maximale est de 2 ans.",
+      "citation": "s'interdit formellement de travailler pour toute autre société pendant une période de 5 ans suivant la fin du contrat",
+      "gravite": "élevée",
+      "article": "Article 3.2"
     }
   ],
   "standardClauses": [
     {
-      "titre": "string",
-      "description": "string"
+      "titre": "Clause de confidentialité standard",
+      "description": "Engagement de confidentialité sur les informations de l'entreprise"
     }
   ],
-  "resume": "string (résumé global du contrat en 2-3 lignes)"
+  "resume": "Ce contrat présente plusieurs clauses très problématiques qui exposent le prestataire à des risques financiers et juridiques majeurs."
 }`;
 
     console.log("Calling Featherless API with Kimi-K2-Instruct model...");
@@ -122,8 +185,8 @@ Réponds UNIQUEMENT en JSON valide avec cette structure :
           { role: "system", content: systemPrompt },
           { role: "user", content: `Analyse ce contrat en détail et détecte tous les red flags :\n\n${contractText}` }
         ],
-        temperature: 0.2,
-        max_tokens: 4000,
+        temperature: 0.1,
+        max_tokens: 8000,
       }),
     });
 
@@ -179,6 +242,15 @@ Réponds UNIQUEMENT en JSON valide avec cette structure :
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Debug logs
+    console.log("=== DEBUG ANALYSE ===");
+    console.log("Nombre de red flags:", analysis.redFlags.length);
+    console.log("Détail des gravités:", analysis.redFlags.map(f => ({
+      titre: f.titre,
+      gravite: f.gravite
+    })));
+    console.log("====================");
 
     const riskScore = calculateRiskScore(analysis);
     console.log("Analysis complete. Risk score:", riskScore, "Red flags:", analysis.redFlags.length);
