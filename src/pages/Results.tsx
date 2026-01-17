@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { AnalysisResult } from "@/types/analysis";
 import { toast } from "sonner";
+import jsPDF from "jspdf";
 
 const Results = () => {
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -59,78 +60,158 @@ const Results = () => {
     const elevatedCount = result.redFlags.filter((f) => f.gravite === "élevée").length;
     const moderateCount = result.redFlags.filter((f) => f.gravite === "modérée").length;
 
-    let reportContent = `RAPPORT D'ANALYSE DE CONTRAT
-==============================
-Généré par Contr'Act
-Date: ${new Date().toLocaleDateString('fr-FR')}
+    const pdf = new jsPDF();
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const margin = 20;
+    const maxWidth = pageWidth - margin * 2;
+    let yPos = 20;
 
-SCORE DE RISQUE: ${result.riskScore}/100
-${result.riskScore <= 30 ? "✅ Risque faible" : result.riskScore <= 60 ? "⚠️ Risque modéré" : "🚨 Risque élevé"}
-
-RÉSUMÉ
-------
-${result.resume || "Aucun résumé disponible."}
-
-STATISTIQUES
-------------
-• Problèmes majeurs: ${elevatedCount}
-• Points d'attention: ${moderateCount}
-• Clauses standard: ${result.standardClauses.length}
-
-`;
-
-    if (result.redFlags.length > 0) {
-      reportContent += `
-POINTS D'ATTENTION DÉTECTÉS
----------------------------
-`;
-      result.redFlags.forEach((flag, index) => {
-        reportContent += `
-${index + 1}. ${flag.titre}
-   Gravité: ${flag.gravite.toUpperCase()}
-   ${flag.description}
-   
-   💡 Article: ${flag.article || "Non spécifié"}
-`;
+    const addText = (text: string, fontSize: number = 10, isBold: boolean = false) => {
+      pdf.setFontSize(fontSize);
+      pdf.setFont("helvetica", isBold ? "bold" : "normal");
+      const lines = pdf.splitTextToSize(text, maxWidth);
+      
+      lines.forEach((line: string) => {
+        if (yPos > 270) {
+          pdf.addPage();
+          yPos = 20;
+        }
+        pdf.text(line, margin, yPos);
+        yPos += fontSize * 0.5;
       });
-    }
+      yPos += 2;
+    };
 
-    if (result.standardClauses.length > 0) {
-      reportContent += `
+    const addSpace = (space: number = 5) => {
+      yPos += space;
+    };
 
-CLAUSES STANDARD DÉTECTÉES
---------------------------
-`;
-      result.standardClauses.forEach((clause, index) => {
-        reportContent += `
-${index + 1}. ${clause.titre}
-   ${clause.description}
-`;
-      });
-    }
-
-    reportContent += `
-
-==============================
-AVERTISSEMENT LÉGAL
-Cette analyse est fournie à titre informatif uniquement.
-Elle ne constitue pas un avis juridique.
-Nous vous recommandons de consulter un avocat avant toute signature.
-
-© Contr'Act - Tous droits réservés
-`;
-
-    const blob = new Blob([reportContent], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `rapport-contrat-${new Date().toISOString().split('T')[0]}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    // Header
+    pdf.setFillColor(59, 130, 246);
+    pdf.rect(0, 0, pageWidth, 40, "F");
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(24);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("RAPPORT D'ANALYSE", margin, 25);
+    pdf.setFontSize(12);
+    pdf.setFont("helvetica", "normal");
+    pdf.text("Contr'Act - Analyse de contrat", margin, 35);
     
-    toast.success("Rapport téléchargé avec succès !");
+    yPos = 55;
+    pdf.setTextColor(0, 0, 0);
+
+    // Date
+    addText(`Date: ${new Date().toLocaleDateString('fr-FR')}`, 10);
+    addSpace(10);
+
+    // Risk Score
+    pdf.setFillColor(result.riskScore <= 30 ? 34 : result.riskScore <= 60 ? 245 : 239, 
+                     result.riskScore <= 30 ? 197 : result.riskScore <= 60 ? 158 : 68, 
+                     result.riskScore <= 30 ? 94 : result.riskScore <= 60 ? 11 : 68);
+    pdf.roundedRect(margin, yPos, maxWidth, 30, 3, 3, "F");
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(18);
+    pdf.setFont("helvetica", "bold");
+    pdf.text(`Score de risque: ${result.riskScore}/100`, margin + 10, yPos + 12);
+    pdf.setFontSize(12);
+    pdf.setFont("helvetica", "normal");
+    const riskLabel = result.riskScore <= 30 ? "Risque faible" : result.riskScore <= 60 ? "Risque modere" : "Risque eleve";
+    pdf.text(riskLabel, margin + 10, yPos + 24);
+    
+    yPos += 40;
+    pdf.setTextColor(0, 0, 0);
+
+    // Summary
+    if (result.resume) {
+      addText("RESUME", 14, true);
+      addSpace(3);
+      addText(result.resume, 10);
+      addSpace(10);
+    }
+
+    // Statistics
+    addText("STATISTIQUES", 14, true);
+    addSpace(3);
+    addText(`• Problemes majeurs: ${elevatedCount}`, 10);
+    addText(`• Points d'attention: ${moderateCount}`, 10);
+    addText(`• Clauses standard: ${result.standardClauses.length}`, 10);
+    addSpace(10);
+
+    // Red Flags
+    if (result.redFlags.length > 0) {
+      addText("POINTS D'ATTENTION DETECTES", 14, true);
+      addSpace(5);
+      
+      result.redFlags.forEach((flag, index) => {
+        if (yPos > 250) {
+          pdf.addPage();
+          yPos = 20;
+        }
+        
+        const graviteColor = flag.gravite === "élevée" ? [239, 68, 68] : 
+                            flag.gravite === "modérée" ? [245, 158, 11] : [34, 197, 94];
+        pdf.setFillColor(graviteColor[0], graviteColor[1], graviteColor[2]);
+        pdf.circle(margin + 3, yPos - 2, 2, "F");
+        
+        addText(`${index + 1}. ${flag.titre}`, 11, true);
+        pdf.setTextColor(100, 100, 100);
+        addText(`Gravite: ${flag.gravite.toUpperCase()}`, 9);
+        pdf.setTextColor(0, 0, 0);
+        addText(flag.description, 10);
+        if (flag.article) {
+          addText(`Article: ${flag.article}`, 9);
+        }
+        addSpace(8);
+      });
+    }
+
+    // Standard Clauses
+    if (result.standardClauses.length > 0) {
+      if (yPos > 230) {
+        pdf.addPage();
+        yPos = 20;
+      }
+      
+      addText("CLAUSES STANDARD DETECTEES", 14, true);
+      addSpace(5);
+      
+      result.standardClauses.forEach((clause, index) => {
+        if (yPos > 260) {
+          pdf.addPage();
+          yPos = 20;
+        }
+        pdf.setFillColor(34, 197, 94);
+        pdf.circle(margin + 3, yPos - 2, 2, "F");
+        addText(`${index + 1}. ${clause.titre}`, 11, true);
+        addText(clause.description, 10);
+        addSpace(5);
+      });
+    }
+
+    // Footer / Disclaimer
+    pdf.addPage();
+    yPos = 20;
+    
+    pdf.setFillColor(245, 245, 245);
+    pdf.rect(margin, yPos, maxWidth, 50, "F");
+    yPos += 10;
+    
+    pdf.setTextColor(100, 100, 100);
+    addText("AVERTISSEMENT LEGAL", 12, true);
+    addSpace(3);
+    addText("Cette analyse est fournie a titre informatif uniquement.", 10);
+    addText("Elle ne constitue pas un avis juridique.", 10);
+    addText("Nous vous recommandons de consulter un avocat avant toute signature.", 10);
+    
+    yPos += 20;
+    pdf.setTextColor(150, 150, 150);
+    addText("© Contr'Act - Tous droits reserves", 9);
+
+    // Save PDF
+    pdf.save(`rapport-contrat-${new Date().toISOString().split('T')[0]}.pdf`);
+    
+    toast.success("Rapport PDF telecharge avec succes !");
+
   };
 
   const handleContactSubmit = async (e: React.FormEvent) => {
