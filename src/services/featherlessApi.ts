@@ -89,18 +89,18 @@ export async function askQuestion(question: string, contractContext: string): Pr
 
 /**
  * Obtient des conseils de négociation basés sur le contrat et les red flags
- * @param contractText - Le texte du contrat
+ * @param contractContext - Le contexte du contrat
  * @param redFlags - Les problèmes détectés
  * @returns Les conseils de négociation
  */
-export async function getNegotiationAdvice(contractText: string, redFlags: any[]): Promise<string> {
+export async function getNegotiationAdvice(contractContext: string, redFlags: any[]): Promise<string> {
   console.log('🤝 Appel de l\'edge function pour négociation...');
   
   try {
     const { data, error } = await supabase.functions.invoke('analyze-contract', {
       body: { 
         action: 'negotiate',
-        contractText,
+        contractContext,
         redFlags
       }
     });
@@ -120,18 +120,18 @@ export async function getNegotiationAdvice(contractText: string, redFlags: any[]
 
 /**
  * Obtient une expertise juridique détaillée du contrat
- * @param contractText - Le texte du contrat
+ * @param contractContext - Le contexte du contrat
  * @param redFlags - Les problèmes détectés
  * @returns L'expertise juridique
  */
-export async function getLegalExpertise(contractText: string, redFlags: any[]): Promise<string> {
+export async function getLegalExpertise(contractContext: string, redFlags: any[]): Promise<string> {
   console.log('⚖️ Appel de l\'edge function pour expertise juridique...');
   
   try {
     const { data, error } = await supabase.functions.invoke('analyze-contract', {
       body: { 
-        action: 'expertise',
-        contractText,
+        action: 'legal',
+        contractContext,
         redFlags
       }
     });
