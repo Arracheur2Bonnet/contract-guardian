@@ -1,36 +1,35 @@
 import { Link } from "react-router-dom";
 import { Button } from "./ui/button";
-import { ArrowRight, Shield, Sparkles, Zap } from "lucide-react";
+import { ArrowRight, Shield, Zap } from "lucide-react";
 
 const HeroSection = () => {
   return (
     <section className="py-20 md:py-32 relative overflow-hidden">
-      {/* Background decoration */}
+      {/* Subtle background gradient */}
+      <div className="absolute inset-0 -z-10 gradient-bg-subtle" />
       <div className="absolute inset-0 -z-10">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-accent/50 rounded-full blur-3xl" />
+        <div className="absolute top-20 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 right-1/4 w-80 h-80 bg-secondary/10 rounded-full blur-3xl" />
       </div>
       
       <div className="container mx-auto px-4">
         <div className="max-w-3xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 bg-accent border border-primary/20 px-5 py-2.5 rounded-full text-sm font-medium text-accent-foreground mb-8 shadow-sm">
-            <Sparkles size={16} className="text-primary" />
-            <span>Analyse juridique automatisée par IA</span>
-          </div>
-          
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
+          <h1 className="text-4xl md:text-5xl lg:text-[3.5rem] font-bold tracking-tight mb-6 leading-tight">
             Analysez vos contrats en{" "}
             <span className="gradient-text">2 minutes</span>
           </h1>
           
-          <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
             Détection automatique de clauses problématiques grâce à l'intelligence artificielle. 
             Protégez-vous avant de signer.
           </p>
           
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10">
             <Link to="/analyze">
-              <Button size="lg" className="gap-2 h-14 px-8 text-base rounded-full gradient-primary border-0 shadow-lg hover:shadow-xl hover:scale-105 transition-all">
+              <Button 
+                size="lg" 
+                className="gap-2 h-14 px-8 text-base rounded-full gradient-primary border-0 shadow-[var(--shadow-primary)] hover:shadow-[var(--shadow-primary-hover)] hover:scale-[1.02] transition-all duration-200"
+              >
                 Analyser un contrat
                 <ArrowRight size={18} />
               </Button>
@@ -38,12 +37,12 @@ const HeroSection = () => {
           </div>
           
           {/* Trust badges */}
-          <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2 bg-card rounded-full px-4 py-2 shadow-sm border border-border/50">
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <div className="inline-flex items-center gap-2 bg-success/10 border border-success/20 px-4 py-2.5 rounded-full text-sm font-medium text-foreground">
               <Shield size={16} className="text-success" />
               <span>100% confidentiel</span>
             </div>
-            <div className="flex items-center gap-2 bg-card rounded-full px-4 py-2 shadow-sm border border-border/50">
+            <div className="inline-flex items-center gap-2 bg-warning/10 border border-warning/20 px-4 py-2.5 rounded-full text-sm font-medium text-foreground">
               <Zap size={16} className="text-warning" />
               <span>Résultats en 30 sec</span>
             </div>
