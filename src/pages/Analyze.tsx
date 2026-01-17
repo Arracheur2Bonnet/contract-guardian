@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import FileUpload from "@/components/FileUpload";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { Loader2, AlertTriangle, Briefcase, Home, FileText, Lock, ShoppingCart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { analyzeContract } from "@/services/featherlessApi";
@@ -42,8 +43,42 @@ const Analyze = () => {
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [progressMessage, setProgressMessage] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Simulate progress during analysis
+  useEffect(() => {
+    if (!isAnalyzing) {
+      setProgress(0);
+      setProgressMessage("");
+      return;
+    }
+
+    const messages = [
+      { progress: 10, message: "📄 Extraction du texte..." },
+      { progress: 25, message: "🔍 Lecture du contrat..." },
+      { progress: 40, message: "⚖️ Analyse des clauses juridiques..." },
+      { progress: 55, message: "🚩 Détection des red flags..." },
+      { progress: 70, message: "📊 Calcul du score de risque..." },
+      { progress: 85, message: "✨ Finalisation de l'analyse..." },
+    ];
+
+    let currentIndex = 0;
+    setProgress(messages[0].progress);
+    setProgressMessage(messages[0].message);
+
+    const interval = setInterval(() => {
+      currentIndex++;
+      if (currentIndex < messages.length) {
+        setProgress(messages[currentIndex].progress);
+        setProgressMessage(messages[currentIndex].message);
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [isAnalyzing]);
 
   const handleFileSelect = (selectedFile: File | null) => {
     setFile(selectedFile);
@@ -139,9 +174,16 @@ const Analyze = () => {
               </Button>
 
               {isAnalyzing && (
-                <p className="text-sm text-muted-foreground text-center mt-4">
-                  Notre IA examine votre contrat en détail (cela peut prendre 20-40 secondes)
-                </p>
+                <div className="mt-6 space-y-3">
+                  <Progress value={progress} className="h-2" />
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">{progressMessage}</span>
+                    <span className="font-medium text-primary">{progress}%</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground text-center">
+                    L'analyse peut prendre 20-40 secondes selon la taille du contrat
+                  </p>
+                </div>
               )}
             </div>
           </div>
