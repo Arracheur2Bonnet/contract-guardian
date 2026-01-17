@@ -5,6 +5,11 @@ import FileUpload from "@/components/FileUpload";
 import { Button } from "@/components/ui/button";
 import { Loader2, AlertTriangle, Briefcase, Home, FileText, Lock, ShoppingCart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import * as pdfjsLib from "pdfjs-dist";
+
+// Configure PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 const contractTypes = [
   { icon: Briefcase, name: "Freelance" },
@@ -13,6 +18,25 @@ const contractTypes = [
   { icon: Lock, name: "NDA" },
   { icon: ShoppingCart, name: "Vente" },
 ];
+
+async function extractTextFromPDF(file: File): Promise<string> {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  
+  let fullText = "";
+  const numPages = Math.min(pdf.numPages, 50); // Limit to 50 pages
+  
+  for (let i = 1; i <= numPages; i++) {
+    const page = await pdf.getPage(i);
+    const textContent = await page.getTextContent();
+    const pageText = textContent.items
+      .map((item: any) => item.str)
+      .join(" ");
+    fullText += pageText + "\n\n";
+  }
+  
+  return fullText;
+}
 
 const Analyze = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -33,60 +57,37 @@ const Analyze = () => {
     setError(null);
 
     try {
-      // For demo purposes, we'll simulate the analysis
-      // In production, this would call the actual API
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+      // Extract text from PDF
+      const contractText = await extractTextFromPDF(file);
       
-      // Store mock results in sessionStorage for demo
-      const mockResult = {
-        success: true,
-        riskScore: 45,
-        redFlags: [
-          {
-            type: "Clause de non-concurrence abusive",
-            titre: "Non-concurrence excessive",
-            description: "La durée de non-concurrence de 3 ans dépasse la limite raisonnable de 2 ans et s'applique sur toute la France sans compensation financière prévue.",
-            citation: "Le prestataire s'engage à ne pas exercer d'activité concurrente pendant une durée de 3 ans sur l'ensemble du territoire français.",
-            gravite: "élevée" as const,
-            article: "Article 12.3",
-          },
-          {
-            type: "Délais de paiement anormaux",
-            titre: "Délai de paiement excessif",
-            description: "Le délai de paiement de 90 jours dépasse le maximum légal de 60 jours pour les transactions B2B.",
-            citation: "Les factures seront réglées dans un délai de 90 jours à compter de la réception.",
-            gravite: "modérée" as const,
-            article: "Article 7.2",
-          },
-          {
-            type: "Propriété intellectuelle déséquilibrée",
-            titre: "Cession de droits sans limite",
-            description: "La cession des droits de propriété intellectuelle est totale et sans contrepartie financière spécifique.",
-            citation: "Le prestataire cède l'intégralité de ses droits patrimoniaux sans limitation de durée ni de territoire.",
-            gravite: "élevée" as const,
-            article: "Article 9.1",
-          },
-        ],
-        standardClauses: [
-          {
-            titre: "Clause de confidentialité",
-            description: "Engagement réciproque de confidentialité avec une durée de 5 ans.",
-          },
-          {
-            titre: "Assurance responsabilité civile",
-            description: "Le prestataire dispose d'une assurance RC professionnelle.",
-          },
-        ],
-        resume: "Ce contrat de prestation présente plusieurs points d'attention majeurs, notamment concernant la clause de non-concurrence et la cession de propriété intellectuelle. Une renégociation est conseillée.",
-      };
+      if (!contractText.trim()) {
+        throw new Error("Ce PDF ne contient pas de texte analysable");
+      }
 
-      sessionStorage.setItem("analysisResult", JSON.stringify(mockResult));
+      // Call the edge function
+      const { data, error: functionError } = await supabase.functions.invoke("analyze-contract", {
+        body: { contractText },
+      });
+
+      if (functionError) {
+        console.error("Function error:", functionError);
+        throw new Error(functionError.message || "Erreur lors de l'analyse");
+      }
+
+      if (!data.success) {
+        throw new Error(data.error || "Erreur lors de l'analyse du contrat");
+      }
+
+      // Store results in sessionStorage
+      sessionStorage.setItem("analysisResult", JSON.stringify(data));
       navigate("/results");
-    } catch (err) {
-      setError("Une erreur est survenue lors de l'analyse. Veuillez réessayer.");
+    } catch (err: any) {
+      console.error("Analysis error:", err);
+      const errorMessage = err.message || "Une erreur est survenue lors de l'analyse. Veuillez réessayer.";
+      setError(errorMessage);
       toast({
         title: "Erreur",
-        description: "Impossible d'analyser le contrat",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
