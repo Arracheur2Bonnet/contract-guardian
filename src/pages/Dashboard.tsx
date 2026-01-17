@@ -41,7 +41,7 @@ const Dashboard = () => {
       const { data, error } = await supabase
         .from("contract_analyses")
         .select("verdict, status")
-        .eq("status", "completed");
+        .in("status", ["completed", "analyzed"]);
 
       if (error) throw error;
 

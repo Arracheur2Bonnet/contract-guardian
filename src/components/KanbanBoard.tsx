@@ -75,7 +75,7 @@ const KanbanBoard = () => {
       const { data, error } = await supabase
         .from("contract_analyses")
         .select("*")
-        .eq("status", "completed")
+        .in("status", ["completed", "analyzed"])
         .order("created_at", { ascending: false });
 
       if (error) throw error;

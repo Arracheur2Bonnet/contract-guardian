@@ -38,7 +38,7 @@ const AppSidebar = () => {
   useEffect(() => {
     const fetchRecent = async () => {
       const contracts = await getRecentContracts(5);
-      setRecentContracts(contracts.filter(c => c.status === 'completed'));
+      setRecentContracts(contracts.filter((c) => c.status === 'completed' || c.status === 'analyzed'));
     };
 
     const fetchUser = async () => {
