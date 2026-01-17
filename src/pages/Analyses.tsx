@@ -3,10 +3,22 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Grid, List, FileText, AlertTriangle, Coins, Loader2 } from "lucide-react";
+import { Search, Grid, List, FileText, AlertTriangle, Coins, Loader2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { getOrCreateUserCredits, getRemainingCredits, UserCredits, PLANS } from "@/services/creditsService";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Contract {
   id: string;
@@ -43,6 +55,7 @@ const Analyses = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isClearing, setIsClearing] = useState(false);
   const [userCredits, setUserCredits] = useState<UserCredits | null>(null);
 
   useEffect(() => {
@@ -108,6 +121,29 @@ const Analyses = () => {
   const remainingCredits = userCredits ? getRemainingCredits(userCredits) : 0;
   const planName = userCredits ? PLANS[userCredits.plan].name : 'Gratuit';
 
+  const handleClearHistory = async () => {
+    setIsClearing(true);
+    try {
+      const { error } = await supabase
+        .from('contract_analyses')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+
+      if (error) {
+        console.error('Error clearing history:', error);
+        toast.error("Erreur lors de la suppression de l'historique");
+      } else {
+        setContracts([]);
+        toast.success("Historique vidé avec succès");
+      }
+    } catch (err) {
+      console.error('Error:', err);
+      toast.error("Une erreur s'est produite");
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
   return (
     <DashboardLayout title="Mes Analyses" subtitle="Retrouvez tous vos contrats analysés">
       {/* Credits Counter */}
@@ -138,6 +174,31 @@ const Analyses = () => {
             <Button size="sm" variant="outline" onClick={() => navigate('/pricing')}>
               Upgrade
             </Button>
+          )}
+          
+          {contracts.length > 0 && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button size="sm" variant="destructive" className="gap-2" disabled={isClearing}>
+                  {isClearing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                  Vider historique
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Vider l'historique ?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Cette action est irréversible. Tous vos contrats analysés seront définitivement supprimés.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Annuler</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleClearHistory} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Supprimer tout
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
         </div>
       </div>
