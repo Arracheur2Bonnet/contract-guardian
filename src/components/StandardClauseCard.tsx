@@ -11,7 +11,7 @@ interface StandardClauseCardProps {
 
 const StandardClauseCard = ({ clause }: StandardClauseCardProps) => {
   return (
-    <div className="card-minimal border border-success/20 bg-success/5 p-4">
+    <div className="border border-success/20 bg-success/5 rounded-lg p-4">
       <div className="flex items-start gap-3">
         <CheckCircle className="text-success mt-0.5" size={18} />
         <div>

@@ -51,7 +51,7 @@ const Results = () => {
           </div>
 
           {/* Risk Score Card */}
-          <div className="card-minimal p-8 mb-8">
+          <div className="bg-card border border-border rounded-lg p-8 mb-8 shadow-sm">
             <RiskScore score={result.riskScore} size="lg" />
             
             {result.resume && (
@@ -112,7 +112,7 @@ const Results = () => {
           )}
 
           {/* Disclaimer */}
-          <div className="card-minimal bg-muted/50 p-4 mb-8">
+          <div className="bg-muted/50 border border-border rounded-lg p-4 mb-8">
             <div className="flex items-start gap-3">
               <AlertTriangle size={18} className="text-muted-foreground mt-0.5 flex-shrink-0" />
               <p className="text-sm text-muted-foreground">
