@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import ReactMarkdown from "react-markdown";
 import { 
   MessageCircle, 
   Send, 
@@ -29,6 +30,11 @@ interface ChatAssistantProps {
 
 type TabType = "questions" | "negocier" | "expertise";
 
+interface TabCache {
+  negocier: Message[] | null;
+  expertise: Message[] | null;
+}
+
 const suggestedQuestions = [
   "Quelles clauses puis-je négocier ?",
   "Quels sont mes droits ?",
@@ -42,6 +48,8 @@ const ChatAssistant = ({ contractText, redFlags = [] }: ChatAssistantProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [questionsMessages, setQuestionsMessages] = useState<Message[]>([]);
+  const [tabCache, setTabCache] = useState<TabCache>({ negocier: null, expertise: null });
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -54,35 +62,62 @@ const ChatAssistant = ({ contractText, redFlags = [] }: ChatAssistantProps) => {
     if (!message.trim() || isLoading) return;
 
     const userMessage: Message = { role: "user", content: message };
-    setMessages(prev => [...prev, userMessage]);
+    const newMessages = [...questionsMessages, userMessage];
+    setQuestionsMessages(newMessages);
+    setMessages(newMessages);
     setInputValue("");
     setIsLoading(true);
 
     try {
       const response = await askQuestion(message, contractText);
       const assistantMessage: Message = { role: "assistant", content: response };
-      setMessages(prev => [...prev, assistantMessage]);
+      const updatedMessages = [...newMessages, assistantMessage];
+      setQuestionsMessages(updatedMessages);
+      setMessages(updatedMessages);
     } catch (error) {
       const errorMessage: Message = { 
         role: "assistant", 
         content: "Désolé, une erreur s'est produite. Veuillez réessayer." 
       };
-      setMessages(prev => [...prev, errorMessage]);
+      const updatedMessages = [...newMessages, errorMessage];
+      setQuestionsMessages(updatedMessages);
+      setMessages(updatedMessages);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleTabChange = async (tab: TabType) => {
+    if (tab === activeTab) return;
+    
     setActiveTab(tab);
     
-    if (tab === "negocier" && !isLoading) {
+    if (tab === "questions") {
+      setMessages(questionsMessages);
+      return;
+    }
+    
+    // Check cache first
+    if (tab === "negocier" && tabCache.negocier) {
+      setMessages(tabCache.negocier);
+      return;
+    }
+    
+    if (tab === "expertise" && tabCache.expertise) {
+      setMessages(tabCache.expertise);
+      return;
+    }
+    
+    // Fetch data if not cached
+    if (tab === "negocier") {
       setIsLoading(true);
       setMessages([]);
       try {
         const response = await getNegotiationAdvice(contractText, redFlags);
         const assistantMessage: Message = { role: "assistant", content: response };
-        setMessages([assistantMessage]);
+        const newMessages = [assistantMessage];
+        setMessages(newMessages);
+        setTabCache(prev => ({ ...prev, negocier: newMessages }));
       } catch (error) {
         const errorMessage: Message = { 
           role: "assistant", 
@@ -92,13 +127,15 @@ const ChatAssistant = ({ contractText, redFlags = [] }: ChatAssistantProps) => {
       } finally {
         setIsLoading(false);
       }
-    } else if (tab === "expertise" && !isLoading) {
+    } else if (tab === "expertise") {
       setIsLoading(true);
       setMessages([]);
       try {
         const response = await getLegalExpertise(contractText, redFlags);
         const assistantMessage: Message = { role: "assistant", content: response };
-        setMessages([assistantMessage]);
+        const newMessages = [assistantMessage];
+        setMessages(newMessages);
+        setTabCache(prev => ({ ...prev, expertise: newMessages }));
       } catch (error) {
         const errorMessage: Message = { 
           role: "assistant", 
@@ -108,8 +145,6 @@ const ChatAssistant = ({ contractText, redFlags = [] }: ChatAssistantProps) => {
       } finally {
         setIsLoading(false);
       }
-    } else if (tab === "questions") {
-      setMessages([]);
     }
   };
 
@@ -240,7 +275,13 @@ const ChatAssistant = ({ contractText, redFlags = [] }: ChatAssistantProps) => {
                         : "bg-muted text-foreground"
                     }`}
                   >
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                    {message.role === "assistant" ? (
+                      <div className="text-sm prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-headings:my-2 prose-headings:font-semibold">
+                        <ReactMarkdown>{message.content}</ReactMarkdown>
+                      </div>
+                    ) : (
+                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                    )}
                   </div>
                 </div>
               ))}
