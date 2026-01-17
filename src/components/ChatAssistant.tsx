@@ -8,13 +8,13 @@ import {
   MessageCircle, 
   Send, 
   X, 
-  Loader2, 
-  Scale, 
+  Loader2,
   ChevronUp,
   ChevronDown,
   Sparkles
 } from "lucide-react";
 import { askQuestion } from "@/services/featherlessApi";
+import logoImage from "@/assets/logo.png";
 
 interface Message {
   role: "user" | "assistant";
@@ -97,11 +97,11 @@ const ChatAssistant = ({ contractText }: ChatAssistantProps) => {
       {/* Header */}
       <div className="flex items-center justify-between p-4 gradient-primary text-white">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-            <Scale className="h-5 w-5" />
+          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center overflow-hidden">
+            <img src={logoImage} alt="Contr'Act" className="w-7 h-7 object-contain" />
           </div>
           <div>
-            <h3 className="font-semibold">Assistant Juridique</h3>
+            <h3 className="font-semibold">Assistant Contr'Act</h3>
             <p className="text-xs text-white/70">Posez vos questions</p>
           </div>
         </div>
