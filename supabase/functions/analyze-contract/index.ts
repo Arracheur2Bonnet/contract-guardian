@@ -26,20 +26,37 @@ interface AnalysisResult {
 }
 
 function calculateRiskScore(analysis: AnalysisResult): number {
+  if (!analysis.redFlags || analysis.redFlags.length === 0) {
+    return 0;
+  }
+
   let score = 0;
+  let highCount = 0;
+  let moderateCount = 0;
+  let lowCount = 0;
   
-  // Adjusted scoring for more balanced results
+  // Count flags by severity
   analysis.redFlags.forEach(flag => {
-    if (flag.gravite === "élevée") score += 15;
-    else if (flag.gravite === "modérée") score += 8;
-    else score += 3;
+    if (flag.gravite === "élevée") highCount++;
+    else if (flag.gravite === "modérée") moderateCount++;
+    else lowCount++;
   });
-  
-  // Apply a scaling factor to prevent extreme scores
-  // This makes scores more distributed across the range
-  const scaledScore = Math.round(score * 0.85);
-  
-  return Math.min(scaledScore, 100);
+
+  // Base scoring with diminishing returns to avoid extreme scores
+  // First flags of each type count more, subsequent ones less
+  score += Math.min(highCount, 2) * 12 + Math.max(0, highCount - 2) * 6;
+  score += Math.min(moderateCount, 3) * 6 + Math.max(0, moderateCount - 3) * 3;
+  score += Math.min(lowCount, 4) * 2 + Math.max(0, lowCount - 4) * 1;
+
+  // Apply a curve to distribute scores more evenly
+  // This prevents clustering at extremes
+  if (score > 0) {
+    // Logarithmic scaling for more balanced distribution
+    score = Math.round(20 + (score / (score + 15)) * 65);
+  }
+
+  // Ensure score is within bounds
+  return Math.min(Math.max(score, 0), 100);
 }
 
 async function callLovableAI(messages: { role: string; content: string }[], maxTokens: number = 4000) {
@@ -250,10 +267,10 @@ Sois précis dans tes références légales (articles de loi, jurisprudence). Re
 
     const systemPrompt = `Tu es un expert juridique français spécialisé dans l'analyse de contrats. 
 
-⚠️ IMPORTANT : Tu dois être TRÈS STRICT et EXHAUSTIF dans ta détection des clauses problématiques.
-CHAQUE contrat est différent et doit avoir un score différent.
+⚠️ IMPORTANT : Tu dois être ÉQUILIBRÉ dans ta détection des clauses problématiques.
+Ne sois ni trop alarmiste ni trop laxiste. Détecte les vrais problèmes.
 
-Ta mission : analyser le contrat et détecter les 7 types de clauses problématiques suivants :
+Ta mission : analyser le contrat et détecter les types de clauses problématiques suivants :
 
 1. Clause de non-concurrence abusive (durée >2 ans, zone trop large, pas de compensation)
 2. Délais de paiement anormaux (>60 jours B2B ou >30 jours B2C)
@@ -264,95 +281,44 @@ Ta mission : analyser le contrat et détecter les 7 types de clauses problémati
 7. Clause compromissoire douteuse (arbitrage distant, frais déséquilibrés)
 
 ═══════════════════════════════════════════════════════════════
-RÈGLES DE CLASSIFICATION DE LA GRAVITÉ (RESPECTE-LES STRICTEMENT)
+RÈGLES DE CLASSIFICATION DE LA GRAVITÉ
 ═══════════════════════════════════════════════════════════════
 
-🔴 GRAVITÉ "élevée" = Clause qui expose à un risque financier >10 000€ OU qui viole clairement la loi :
-  → Non-concurrence >3 ans ET sans compensation financière
-  → Pénalités >20% du montant total OU sans plafonnement
-  → Délais de paiement >120 jours OU conditionné aux fonds du client final
-  → Cession PI totale + renonciation explicite aux droits moraux
-  → Clause compromissoire à l'étranger avec frais 100% à charge d'une partie
-  → Préavis >6 mois de différence entre les parties
-  → Résiliation unilatérale sans préavis ni motif
+🔴 GRAVITÉ "élevée" = Clause qui expose à un risque financier important OU qui viole la loi :
+  → Non-concurrence >3 ans ET sans compensation
+  → Pénalités >20% sans plafond
+  → Délais de paiement >120 jours
+  → Cession PI totale + renonciation aux droits moraux
+  → Résiliation unilatérale sans préavis
 
-🟠 GRAVITÉ "modérée" = Clause déséquilibrée mais pas catastrophique :
-  → Non-concurrence 2-3 ans avec compensation insuffisante (<50% salaire)
+🟠 GRAVITÉ "modérée" = Clause déséquilibrée mais gérable :
+  → Non-concurrence 2-3 ans avec compensation insuffisante
   → Pénalités 10-20% du montant
   → Délais de paiement 60-120 jours
-  → Préavis déséquilibré (3-6 mois de différence)
-  → Cession PI sans rémunération additionnelle mais droits moraux préservés
-  → Exclusivité sans garantie de volume mais durée <2 ans
+  → Préavis déséquilibré
 
 🟡 GRAVITÉ "faible" = Point d'attention mineur :
-  → Clause ambiguë mais pas manifestement dangereuse
-  → Manque de précision sur modalités
+  → Clause ambiguë
+  → Manque de précision
   → Durée de confidentialité >10 ans
-  → Frais non remboursés (déplacement, téléphone)
-
-═══════════════════════════════════════════════════════════════
-EXEMPLES CONCRETS DE SCORING (SUIS CE MODÈLE)
-═══════════════════════════════════════════════════════════════
-
-📌 CONTRAT TRÈS GRAVE (score attendu : 80-100) :
-- Non-concurrence 5 ans France entière sans compensation → élevée (20 pts)
-- Pénalités 500€/jour sans plafond → élevée (20 pts)
-- Délai paiement 180 jours "à réception fonds client" → élevée (20 pts)
-- Arbitrage Singapour, frais 100% à charge prestataire → élevée (20 pts)
-- Cession PI totale → élevée (20 pts)
-TOTAL : 100 points
-
-📌 CONTRAT GRAVE (score attendu : 50-70) :
-- Non-concurrence 3 ans zone large → modérée (10 pts)
-- Pénalités 15% du montant → modérée (10 pts)
-- Préavis 6 mois vs 1 semaine → élevée (20 pts)
-- Délai paiement 90 jours → modérée (10 pts)
-- Cession PI sans compensation → modérée (10 pts)
-TOTAL : 60 points
-
-📌 CONTRAT MODÉRÉ (score attendu : 20-40) :
-- Non-concurrence 2 ans avec compensation 30% → modérée (10 pts)
-- Préavis 3 mois vs 1 mois → modérée (10 pts)
-- Confidentialité 15 ans → faible (3 pts)
-TOTAL : 23 points
-
-⚠️ CONSIGNE CRITIQUE : 
-- Un contrat avec 10+ clauses abusives DOIT avoir un MIX de gravités (pas tout en "élevée")
-- Sois NUANCÉ dans ton évaluation
-- CHAQUE contrat est unique et doit avoir un score DIFFÉRENT
-- Compare chaque clause aux seuils précis ci-dessus
 
 ═══════════════════════════════════════════════════════════════
 
 Pour CHAQUE problème détecté, tu DOIS fournir :
-- type : le type de red flag (parmi les 7 ci-dessus)
-- titre : nom court et précis du problème (ex: "Non-concurrence de 5 ans")
-- description : explication claire en 2-3 phrases du POURQUOI c'est problématique
-- citation : extrait EXACT du contrat (30-60 mots, copie-colle le texte entre guillemets)
-- gravite : "faible" | "modérée" | "élevée" (RESPECTE les règles ci-dessus)
-- article : numéro de l'article concerné si identifiable (ex: "Article 5.1")
+- type : le type de red flag
+- titre : nom court et précis du problème
+- description : explication claire en 2-3 phrases
+- citation : extrait EXACT du contrat (30-60 mots)
+- gravite : "faible" | "modérée" | "élevée"
+- article : numéro de l'article concerné si identifiable
 
-Détecte aussi les clauses POSITIVES (protection salarié, assurance, formation) si elles existent.
+Détecte aussi les clauses POSITIVES si elles existent.
 
-Réponds UNIQUEMENT en JSON valide avec cette structure EXACTE :
+Réponds UNIQUEMENT en JSON valide avec cette structure :
 {
-  "redFlags": [
-    {
-      "type": "Clause de non-concurrence abusive",
-      "titre": "Non-concurrence de 5 ans sans compensation",
-      "description": "La clause impose une interdiction de travailler pendant 5 ans après la fin du contrat, sans aucune compensation financière. La durée légale maximale est de 2 ans.",
-      "citation": "s'interdit formellement de travailler pour toute autre société pendant une période de 5 ans suivant la fin du contrat",
-      "gravite": "élevée",
-      "article": "Article 3.2"
-    }
-  ],
-  "standardClauses": [
-    {
-      "titre": "Clause de confidentialité standard",
-      "description": "Engagement de confidentialité sur les informations de l'entreprise"
-    }
-  ],
-  "resume": "Ce contrat présente plusieurs clauses très problématiques qui exposent le prestataire à des risques financiers et juridiques majeurs."
+  "redFlags": [...],
+  "standardClauses": [...],
+  "resume": "Résumé de l'analyse en 2-3 phrases."
 }`;
 
     console.log("Calling Lovable AI...");
@@ -360,7 +326,7 @@ Réponds UNIQUEMENT en JSON valide avec cette structure EXACTE :
     try {
       const content = await callLovableAI([
         { role: "system", content: systemPrompt },
-        { role: "user", content: `Analyse ce contrat en détail et détecte tous les red flags :\n\n${contractText}` }
+        { role: "user", content: `Analyse ce contrat et détecte les red flags :\n\n${contractText}` }
       ], 4000);
 
       if (!content) {
@@ -371,11 +337,10 @@ Réponds UNIQUEMENT en JSON valide avec cette structure EXACTE :
         );
       }
 
-      // Parse JSON from response, handling potential markdown code blocks
+      // Parse JSON from response
       let analysis: AnalysisResult;
       try {
         let jsonContent = content.trim();
-        // Remove markdown code blocks if present
         if (jsonContent.startsWith("```json")) {
           jsonContent = jsonContent.slice(7);
         } else if (jsonContent.startsWith("```")) {
@@ -389,9 +354,7 @@ Réponds UNIQUEMENT en JSON valide avec cette structure EXACTE :
         analysis = JSON.parse(jsonContent);
       } catch (parseError) {
         console.error("Failed to parse JSON response:", parseError);
-        console.error("Raw content:", content);
         
-        // Try to extract JSON from the response
         const jsonMatch = content.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           try {
@@ -417,7 +380,7 @@ Réponds UNIQUEMENT en JSON valide avec cette structure EXACTE :
       }
 
       const riskScore = calculateRiskScore(analysis);
-      console.log("Analysis complete. Risk score:", riskScore);
+      console.log("Analysis complete. Risk score:", riskScore, "Red flags:", analysis.redFlags?.length || 0);
 
       return new Response(
         JSON.stringify({
@@ -425,28 +388,24 @@ Réponds UNIQUEMENT en JSON valide avec cette structure EXACTE :
           riskScore,
           redFlags: analysis.redFlags || [],
           standardClauses: analysis.standardClauses || [],
-          resume: analysis.resume || "Analyse du contrat terminée.",
+          resume: analysis.resume || "Analyse terminée.",
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     } catch (error) {
-      console.error("Error analyzing contract:", error);
+      console.error("Error calling AI:", error);
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: error instanceof Error ? error.message : "Erreur lors de l'analyse du contrat" 
+          error: error instanceof Error ? error.message : "Erreur lors de l'analyse" 
         }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
   } catch (error) {
-    console.error("Error in edge function:", error);
+    console.error("Error in analyze-contract function:", error);
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error instanceof Error ? error.message : "Erreur interne du serveur" 
-      }),
+      JSON.stringify({ success: false, error: "Erreur lors de l'analyse du contrat" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
-import Logo from "@/components/Logo";
+import logoImage from "@/assets/logo.png";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -17,7 +17,6 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Check if user is already logged in
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
         navigate("/");
@@ -35,18 +34,31 @@ const Auth = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email.trim() || !password.trim()) {
+      toast.error("Veuillez remplir tous les champs");
+      return;
+    }
+
+    if (password.length < 6) {
+      toast.error("Le mot de passe doit contenir au moins 6 caractères");
+      return;
+    }
+
     setLoading(true);
 
     try {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({
-          email,
+          email: email.trim(),
           password,
         });
 
         if (error) {
           if (error.message.includes("Invalid login credentials")) {
             toast.error("Email ou mot de passe incorrect");
+          } else if (error.message.includes("Email not confirmed")) {
+            toast.error("Veuillez confirmer votre email");
           } else {
             toast.error(error.message);
           }
@@ -56,22 +68,29 @@ const Auth = () => {
         toast.success("Connexion réussie !");
         navigate("/");
       } else {
+        if (!fullName.trim()) {
+          toast.error("Veuillez entrer votre nom");
+          setLoading(false);
+          return;
+        }
+
         const redirectUrl = `${window.location.origin}/`;
         
         const { error } = await supabase.auth.signUp({
-          email,
+          email: email.trim(),
           password,
           options: {
             emailRedirectTo: redirectUrl,
             data: {
-              full_name: fullName,
+              full_name: fullName.trim(),
             },
           },
         });
 
         if (error) {
           if (error.message.includes("User already registered")) {
-            toast.error("Un compte existe déjà avec cet email");
+            toast.error("Un compte existe déjà avec cet email. Connectez-vous.");
+            setIsLogin(true);
           } else {
             toast.error(error.message);
           }
@@ -93,7 +112,10 @@ const Auth = () => {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="flex justify-center mb-8">
-          <Logo size="lg" />
+          <div className="flex items-center gap-3">
+            <img src={logoImage} alt="Contr'Act" className="w-10 h-10" />
+            <span className="font-bold text-2xl text-primary">Contr'Act</span>
+          </div>
         </div>
 
         {/* Card */}
@@ -121,7 +143,6 @@ const Auth = () => {
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     className="pl-10"
-                    required={!isLogin}
                   />
                 </div>
               </div>
@@ -153,7 +174,6 @@ const Auth = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10 pr-10"
                   required
-                  minLength={6}
                 />
                 <button
                   type="button"

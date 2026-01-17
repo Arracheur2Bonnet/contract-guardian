@@ -12,7 +12,7 @@ const DashboardLayout = ({ children, title, subtitle }: DashboardLayoutProps) =>
   return (
     <div className="min-h-screen bg-background">
       <AppSidebar />
-      <div className="ml-[280px] transition-all duration-300">
+      <div className="ml-[260px]">
         <DashboardHeader title={title} subtitle={subtitle} />
         <main className="p-6">
           {children}
