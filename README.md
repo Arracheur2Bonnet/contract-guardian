@@ -1,73 +1,69 @@
-# Welcome to your Lovable project
+# Contr'Act - Analyseur de Contrats IA
 
-## Project info
+![Contr'Act Login](https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d436eaf9-4965-40c4-9f38-187d237302ec/6cac1557-f387-4cbf-9ca0-201548673da6.lovableproject.com-1769358803004.png)
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## 🌐 Live Demo
 
-## How can I edit this code?
+**Website URL**: [https://contr-act.lovable.app](https://contr-act.lovable.app)
 
-There are several ways of editing your application.
+## 📋 Description
 
-**Use Lovable**
+Contr'Act est une application web d'analyse de contrats alimentée par l'intelligence artificielle. Elle permet aux utilisateurs de :
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+- **Analyser des contrats** en quelques secondes grâce à l'IA
+- **Détecter les clauses à risque** (red flags) automatiquement
+- **Obtenir un score de risque** pour chaque contrat
+- **Recevoir des recommandations** : Signer, Négocier ou Refuser
+- **Gérer un historique** de tous les contrats analysés
 
-Changes made via Lovable will be committed automatically to this repo.
+## ✨ Fonctionnalités
 
-**Use your preferred IDE**
+- 🔍 **Analyse IA** - Extraction et analyse intelligente du contenu des contrats PDF
+- ⚠️ **Détection de Red Flags** - Identification automatique des clauses problématiques
+- 📊 **Score de Risque** - Évaluation globale du risque contractuel (0-100)
+- ✅ **Verdict Clair** - Recommandation : SIGNER / NÉGOCIER / REFUSER
+- 📁 **Dashboard Kanban** - Vue organisée par statut de décision
+- 📜 **Historique** - Accès à toutes les analyses précédentes
+- 🔐 **Authentification** - Espace personnel sécurisé
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 🛠️ Technologies
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+Ce projet est construit avec :
 
-Follow these steps:
+- **React** + **TypeScript** - Framework frontend
+- **Vite** - Build tool
+- **Tailwind CSS** - Styling
+- **shadcn/ui** - Composants UI
+- **Supabase** - Backend (Auth, Database, Edge Functions)
+- **Featherless AI** - Modèle LLM pour l'analyse
+
+## 🚀 Installation locale
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
+# Cloner le repository
 git clone <YOUR_GIT_URL>
 
-# Step 2: Navigate to the project directory.
+# Naviguer dans le projet
 cd <YOUR_PROJECT_NAME>
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Installer les dépendances
+npm install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Lancer le serveur de développement
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## 📱 Screenshots
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Page de Connexion
+![Login Page](https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d436eaf9-4965-40c4-9f38-187d237302ec/6cac1557-f387-4cbf-9ca0-201548673da6.lovableproject.com-1769358803004.png)
 
-**Use GitHub Codespaces**
+*Interface de connexion avec témoignages clients*
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## 📄 License
 
-## What technologies are used for this project?
+Ce projet est développé avec [Lovable](https://lovable.dev).
 
-This project is built with:
+---
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Fait avec ❤️ en France
